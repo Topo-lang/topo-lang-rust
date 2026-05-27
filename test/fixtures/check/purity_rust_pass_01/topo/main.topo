@@ -1,0 +1,15 @@
+// Pure parallel stage functions: no global writes.
+// Rust functions at crate root so the extractor emits simple names that
+// match the .topo calledFunctions entries.
+
+namespace app {
+  public:
+    void run();
+    void compute();
+    void render();
+
+    fn run {
+        stage<1> compute();
+        stage<1> render();
+    }
+}

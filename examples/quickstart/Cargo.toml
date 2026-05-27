@@ -1,0 +1,12 @@
+[package]
+name = "quickstart_rust"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "quickstart_rust"
+path = "src/lib.rs"
+
+[[bin]]
+name = "quickstart_rust"
+path = "src/main.rs"

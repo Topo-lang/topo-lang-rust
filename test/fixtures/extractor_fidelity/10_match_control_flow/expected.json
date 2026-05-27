@@ -1,0 +1,74 @@
+{
+  "functions": [
+    {
+      "body": [
+        {
+          "cases": [
+            {
+              "body": [
+                {
+                  "kind": "literal",
+                  "litKind": "int",
+                  "value": "10"
+                }
+              ],
+              "value": {
+                "kind": "literal",
+                "litKind": "int",
+                "value": "0"
+              }
+            },
+            {
+              "body": [
+                {
+                  "kind": "literal",
+                  "litKind": "int",
+                  "value": "20"
+                }
+              ],
+              "value": {
+                "kind": "literal",
+                "litKind": "int",
+                "value": "1"
+              }
+            },
+            {
+              "body": [
+                {
+                  "kind": "literal",
+                  "litKind": "int",
+                  "value": "0"
+                }
+              ],
+              "value": null
+            }
+          ],
+          "kind": "switch",
+          "subject": {
+            "kind": "varref",
+            "name": "n"
+          }
+        }
+      ],
+      "fidelity": "source",
+      "params": [
+        {
+          "name": "n",
+          "type": {
+            "nameParts": [
+              "i32"
+            ]
+          }
+        }
+      ],
+      "qualifiedName": "classify",
+      "returnType": {
+        "nameParts": [
+          "i32"
+        ]
+      },
+      "unsupported": []
+    }
+  ],
+  "types": []
+}

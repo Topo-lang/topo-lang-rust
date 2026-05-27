@@ -1,0 +1,15 @@
+error: #[topo_pipeline] requires an empty body `{}` -- the IR pass replaces the function body wholesale, so any user-written statements are silently dropped at runtime. See .aidesk/base/60-spec/topo-lang-rust/topo-pipeline-macro.md
+  --> tests/cases/fail_non_empty_body.rs:9:22
+   |
+ 9 |   fn surprise() -> i32 {
+   |  ______________________^
+10 | |     let v = 42;
+11 | |     v + 1
+12 | | }
+   | |_^
+
+error[E0425]: cannot find function `surprise` in this scope
+  --> tests/cases/fail_non_empty_body.rs:15:13
+   |
+15 |     let _ = surprise();
+   |             ^^^^^^^^ not found in this scope

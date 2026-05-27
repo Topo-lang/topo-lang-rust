@@ -1,0 +1,61 @@
+[project]
+name = "showcase_rust"
+
+[topo]
+root = "topo/session.topo"
+
+[build]
+language = "rust"
+sources = ["src"]
+output = "showcase_rust"
+
+[parallel]
+mode = "force"
+
+[lifetime]
+mode = "force"
+
+[observability]
+mode = "force"
+exporter = "stdout"
+
+[completeness]
+ignore_main = true
+ignore_constructors = true
+ignore_destructors = true
+ignore_patterns = [
+    "*::new",
+    "*::drop",
+    "PipelineConfig",
+    "pipeline::PipelineConfig",
+    "pipeline::PipelineConfig::*",
+    "pipeline::Record",
+    "pipeline::Record::*",
+    "pipeline::Schema",
+    "pipeline::Schema::*",
+    "pipeline::Batch",
+    "pipeline::Batch::*",
+    "pipeline::DataSource",
+    "pipeline::DataSource::*",
+    "pipeline::FileSource",
+    "pipeline::FileSource::*",
+    "pipeline::Cache",
+    "pipeline::Cache::*",
+    "pipeline::Index",
+    "pipeline::Index::*",
+    "pipeline::Validatable",
+    "pipeline::Validatable::*",
+    "pipeline::Serializable",
+    "pipeline::Serializable::*",
+    "pipeline::Indexable",
+    "pipeline::Indexable::*",
+    "pipeline::metrics",
+    "pipeline::metrics::*",
+    "pipeline::error_count",
+    "pipeline::serialized_size",
+    "pipeline::serialize",
+    "pipeline::deserialize",
+    "pipeline::index_key",
+    "pipeline::compare_key",
+    "pipeline::validate",
+]

@@ -1,0 +1,41 @@
+{
+  "functions": [
+    {
+      "body": [
+        {
+          "init": {
+            "description": "closure expression",
+            "kind": "unsupported"
+          },
+          "kind": "vardecl",
+          "name": "f",
+          "type": null
+        },
+        {
+          "kind": "return",
+          "value": {
+            "args": [
+              {
+                "kind": "literal",
+                "litKind": "int",
+                "value": "5"
+              }
+            ],
+            "callee": "f",
+            "kind": "call"
+          }
+        }
+      ],
+      "fidelity": "source",
+      "params": [],
+      "qualifiedName": "apply",
+      "returnType": {
+        "nameParts": [
+          "i32"
+        ]
+      },
+      "unsupported": []
+    }
+  ],
+  "types": []
+}

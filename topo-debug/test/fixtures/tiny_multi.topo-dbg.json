@@ -1,0 +1,8 @@
+{
+  "schema_version": "1",
+  "source": {
+    "host_files": ["tiny_multi.rs"],
+    "topo_files": []
+  },
+  "symbols": []
+}

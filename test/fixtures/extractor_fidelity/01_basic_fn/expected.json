@@ -1,0 +1,50 @@
+{
+  "functions": [
+    {
+      "body": [
+        {
+          "kind": "return",
+          "value": {
+            "kind": "binaryop",
+            "lhs": {
+              "kind": "varref",
+              "name": "a"
+            },
+            "op": "add",
+            "rhs": {
+              "kind": "varref",
+              "name": "b"
+            }
+          }
+        }
+      ],
+      "fidelity": "source",
+      "params": [
+        {
+          "name": "a",
+          "type": {
+            "nameParts": [
+              "i32"
+            ]
+          }
+        },
+        {
+          "name": "b",
+          "type": {
+            "nameParts": [
+              "i32"
+            ]
+          }
+        }
+      ],
+      "qualifiedName": "add",
+      "returnType": {
+        "nameParts": [
+          "i32"
+        ]
+      },
+      "unsupported": []
+    }
+  ],
+  "types": []
+}

@@ -1,0 +1,9 @@
+[project]
+name = "completeness_rust_pass"
+
+[topo]
+root = "topo/main.topo"
+
+[build]
+language = "rust"
+sources = ["src/*.rs"]

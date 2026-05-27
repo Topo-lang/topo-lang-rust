@@ -1,0 +1,47 @@
+{
+  "functions": [
+    {
+      "body": [],
+      "fidelity": "source",
+      "params": [
+        {
+          "name": "_it",
+          "type": {
+            "nameParts": [
+              "T"
+            ]
+          }
+        }
+      ],
+      "qualifiedName": "collect",
+      "returnType": {
+        "nameParts": [
+          "void"
+        ]
+      },
+      "templateParams": [
+        {
+          "bound": {
+            "assocBindings": [
+              {
+                "name": "Item",
+                "type": {
+                  "nameParts": [
+                    "u8"
+                  ]
+                }
+              }
+            ],
+            "nameParts": [
+              "Iterator"
+            ]
+          },
+          "kind": "type",
+          "name": "T"
+        }
+      ],
+      "unsupported": []
+    }
+  ],
+  "types": []
+}

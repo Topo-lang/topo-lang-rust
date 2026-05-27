@@ -1,0 +1,32 @@
+{
+  "functions": [],
+  "types": [
+    {
+      "fidelity": "source",
+      "fields": [
+        {
+          "fidelity": "source",
+          "name": "data",
+          "type": {
+            "nameParts": [
+              "[u8; N]"
+            ]
+          }
+        }
+      ],
+      "qualifiedName": "Buf",
+      "templateParams": [
+        {
+          "bound": {
+            "nameParts": [
+              "usize"
+            ]
+          },
+          "defaultValue": "16",
+          "kind": "nontype",
+          "name": "N"
+        }
+      ]
+    }
+  ]
+}

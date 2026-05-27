@@ -1,0 +1,31 @@
+{
+  "functions": [],
+  "types": [
+    {
+      "fidelity": "source",
+      "fields": [
+        {
+          "fidelity": "source",
+          "name": "value",
+          "type": {
+            "nameParts": [
+              "T"
+            ]
+          }
+        }
+      ],
+      "qualifiedName": "Container",
+      "templateParams": [
+        {
+          "default": {
+            "nameParts": [
+              "i32"
+            ]
+          },
+          "kind": "type",
+          "name": "T"
+        }
+      ]
+    }
+  ]
+}

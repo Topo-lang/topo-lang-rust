@@ -1,0 +1,35 @@
+[package]
+name = "topo-app-static-rust"
+version = "0.1.0"
+edition = "2021"
+description = "topo-app Rust compile-time static .topo producer (no user-code execution)"
+
+# `syn` is the same static-AST parser (same major version) the existing
+# `topo-extract-rust` subprocess already depends on
+# (topo-lang-rust/topo-check/extractor/Cargo.toml). The static path is
+# the compile-time alternative to the runtime registration bridge — just
+# another `.topo` producer — so it reuses that exact machinery instead
+# of hand-rolling a Rust parser. `full` gives item/fn/type nodes,
+# `parsing` the file parser, `visit` the read-only AST walk; identical
+# feature set to the extractor so the dependency surface stays a strict
+# subset.
+#
+# The visitors and type-resolution helpers in each crate are
+# deliberately NOT shared — the two crates have distinct invocation
+# models (subprocess vs library/CLI), distinct output shapes
+# (TranspileModel wire JSON vs emitted `.topo`), and distinct
+# lifecycles. The dependency itself is the only intentionally shared
+# surface; see ../../SYN_PARSER_BOUNDARY.md for the rationale and
+# the conditions that would justify merging the two crates.
+[dependencies]
+syn = { version = "2", features = ["full", "parsing", "visit"] }
+proc-macro2 = "1"
+quote = "1"
+
+[lib]
+name = "topo_app_static_rust"
+path = "src/lib.rs"
+
+[[bin]]
+name = "topo-app-static-rust"
+path = "src/main.rs"

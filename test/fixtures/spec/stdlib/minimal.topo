@@ -1,0 +1,30 @@
+// Plan 38 Batch 2.4 — Rust per-language fixture covering the 6 first-batch
+// stdlib bridging types (bool / i64 / f64 / string / optional<T> / slice<T>).
+//
+// Pairs with src/lib.rs (matching signatures). Mapping verified by
+// RustEmitter:
+//   bool        -> bool
+//   i64         -> i64
+//   f64         -> f64
+//   string      -> &str           (UTF-8 string slice; non-owning)
+//   optional<T> -> Option<T>
+//   slice<T>    -> &[T]           (non-owning borrow; lifetime elided)
+//
+// `boundary` exercises every Batch-1 type in one signature, mirroring the
+// representative case called out in Plan 38 §7.
+
+namespace stdlib_smoke {
+  public:
+    bool isReady();
+    i64 nextId();
+    f64 averageScore();
+    string label();
+    optional<bool> maybeFlag();
+    slice<f64> samples();
+
+    // All-types-in-one signature — Plan 38 §7 acceptance case.
+    optional<i64> boundary(i64 id,
+                           string name,
+                           optional<bool> flags,
+                           slice<f64> values);
+}

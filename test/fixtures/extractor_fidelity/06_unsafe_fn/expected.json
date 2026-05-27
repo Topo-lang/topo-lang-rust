@@ -1,0 +1,43 @@
+{
+  "functions": [
+    {
+      "body": [
+        {
+          "init": {
+            "kind": "varref",
+            "name": "b"
+          },
+          "kind": "vardecl",
+          "name": "x",
+          "type": null
+        },
+        {
+          "kind": "return",
+          "value": {
+            "kind": "varref",
+            "name": "x"
+          }
+        }
+      ],
+      "fidelity": "source",
+      "params": [
+        {
+          "name": "b",
+          "type": {
+            "nameParts": [
+              "u8"
+            ]
+          }
+        }
+      ],
+      "qualifiedName": "read_u8",
+      "returnType": {
+        "nameParts": [
+          "u8"
+        ]
+      },
+      "unsupported": []
+    }
+  ],
+  "types": []
+}

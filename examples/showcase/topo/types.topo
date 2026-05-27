@@ -1,0 +1,198 @@
+// types.topo — data pipeline type system
+//
+// Features demonstrated: using, std::import, constraint hierarchy,
+//           adapt, type (constructor, destructor, const, static,
+//           inheritance), template (constrained params), typefn,
+//           comptime fn, comptime if, instantiate, ownership
+
+using i32 = std::rust::i32;
+using bool = std::rust::bool;
+using f64 = std::rust::f64;
+using usize = std::rust::usize;
+using i64 = std::rust::i64;
+
+std::import("pipeline/config.rs", PipelineConfig);
+
+namespace pipeline {
+
+  // -- Constraint hierarchy -----------------------------------------
+  // Validatable: data quality contracts
+  // Serializable: network transfer / persistence
+  // Indexable inherits Serializable: lookup requires storage
+
+  public:
+    constraint Validatable {
+        bool validate();
+        i32 error_count();
+    }
+
+    constraint Serializable {
+        usize serialized_size();
+        void serialize(i32 dest);
+        bool deserialize(i32 src);
+    }
+
+    constraint Indexable : Serializable {
+        i64 index_key();
+        i32 compare_key(const Indexable& other);
+    }
+
+  // -- Core types ---------------------------------------------------
+
+  public:
+    type Record {
+      public:
+        explicit Record(i32 schema_id);
+        ~Record();
+        i32 field_count() const;
+        i32 get_field(i32 index) const;
+        void set_field(i32 index, i32 value);
+        i32 schema_id() const;
+        bool is_empty() const;
+      private:
+        i32 schema;
+        i32 count;
+    }
+
+    type Schema {
+      public:
+        explicit Schema(i32 id);
+        i32 field_type(i32 index) const;
+        bool accepts(const Record& record) const;
+        i32 id() const;
+        static Schema default_schema();
+      private:
+        i32 schema_id;
+        i32 field_count;
+    }
+
+    type Batch {
+      public:
+        explicit Batch(i32 capacity);
+        ~Batch();
+        void add(const Record& record);
+        const Record& get(i32 index) const;
+        i32 size() const;
+        bool is_full() const;
+        void clear();
+      private:
+        i32 count;
+        i32 cap;
+    }
+
+  // -- Inheritance --------------------------------------------------
+
+  public:
+    type DataSource {
+      public:
+        i32 read(Batch& batch);
+        bool has_more() const;
+        i64 bytes_read() const;
+    }
+
+    type FileSource : public DataSource {
+      public:
+        explicit FileSource(i32 path);
+        i64 file_size() const;
+        f64 progress() const;
+      private:
+        i32 fd;
+        i64 offset;
+    }
+
+  // -- Constraint adaptations ---------------------------------------
+
+  public:
+    adapt Validatable for Record {
+        validate = record_validate;
+        error_count = record_error_count;
+    }
+
+    adapt Serializable for Record {
+        serialized_size = record_serialized_size;
+        serialize = record_serialize;
+        deserialize = record_deserialize;
+    }
+
+    adapt Indexable for Record {
+        index_key = record_index_key;
+        compare_key = record_compare_key;
+    }
+
+  // -- Constrained templates ----------------------------------------
+
+  public:
+    template<typename T : Serializable>
+    type Cache {
+      public:
+        bool get(i64 key, T& out) const;
+        void put(i64 key, const T& value);
+        void evict(i64 key);
+        i32 size() const;
+        void clear();
+      private:
+        i32 count;
+        i32 max_size;
+    }
+
+    template<typename T : Indexable>
+    type Index {
+      public:
+        void insert(const T& item);
+        bool lookup(i64 key, T& out) const;
+        void remove(i64 key);
+        i32 size() const;
+      private:
+        i32 count;
+    }
+
+  // -- Template instantiations --------------------------------------
+
+  public:
+    instantiate Cache<Record>;
+    instantiate Index<Record>;
+
+  // -- Type function ------------------------------------------------
+
+  public:
+    typefn StorageType(typename T) -> typename {
+        match T {
+            i32 => i64,
+            f64 => f64,
+            _ => T
+        }
+    }
+
+  // -- Compile-time -------------------------------------------------
+
+  public:
+    comptime fn max_batch_size(i32 record_size) -> i32 { record_size * 4096 }
+
+    comptime if (sizeof(i32) <= 4) {
+      void use_compact_format();
+    } else {
+      void use_wide_format();
+    }
+
+  // -- Ownership modifiers ------------------------------------------
+
+  public:
+    void submit_batch(owned Batch batch);
+    i32 query_cache(shared Cache<Record> cache, i64 key);
+    bool check_source(weak DataSource source);
+
+  // -- Constraint implementation functions --------------------------
+
+  protected:
+    bool record_validate(Record& record);
+    i32 record_error_count(const Record& record);
+    usize record_serialized_size(const Record& record);
+    void record_serialize(const Record& record, i32 dest);
+    bool record_deserialize(Record& record, i32 src);
+    i64 record_index_key(const Record& record);
+    i32 record_compare_key(const Record& a, const Record& b);
+
+  private:
+    void compact_cache(i32 threshold);
+    void rebuild_index_segment(i32 segment_id);
+}

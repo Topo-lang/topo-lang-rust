@@ -1,0 +1,26 @@
+{
+  "functions": [
+    {
+      "body": [
+        {
+          "kind": "return",
+          "value": {
+            "kind": "literal",
+            "litKind": "int",
+            "value": "42"
+          }
+        }
+      ],
+      "fidelity": "source",
+      "params": [],
+      "qualifiedName": "foo::bar::baz",
+      "returnType": {
+        "nameParts": [
+          "i32"
+        ]
+      },
+      "unsupported": []
+    }
+  ],
+  "types": []
+}

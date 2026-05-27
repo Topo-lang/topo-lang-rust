@@ -1,0 +1,12 @@
+[package]
+name = "showcase_rust"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "showcase_rust"
+path = "src/lib.rs"
+
+[[bin]]
+name = "showcase_rust"
+path = "src/main.rs"

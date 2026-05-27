@@ -1,0 +1,59 @@
+{
+  "functions": [
+    {
+      "body": [],
+      "fidelity": "source",
+      "params": [
+        {
+          "name": "_f",
+          "type": {
+            "nameParts": [
+              "F"
+            ]
+          }
+        }
+      ],
+      "qualifiedName": "map",
+      "returnType": {
+        "nameParts": [
+          "void"
+        ]
+      },
+      "templateParams": [
+        {
+          "bound": {
+            "assocBindings": [
+              {
+                "name": "Output",
+                "type": {
+                  "nameParts": [
+                    "&",
+                    "u8"
+                  ]
+                }
+              }
+            ],
+            "hrtbLifetimes": [
+              "a"
+            ],
+            "nameParts": [
+              "Fn"
+            ],
+            "templateArgs": [
+              {
+                "nameParts": [
+                  "&",
+                  "u8"
+                ]
+              }
+            ]
+          },
+          "kind": "type",
+          "name": "F"
+        }
+      ],
+      "unsupported": []
+    }
+  ],
+  "types": []
+}

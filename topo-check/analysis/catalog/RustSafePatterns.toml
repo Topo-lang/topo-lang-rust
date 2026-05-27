@@ -1,0 +1,159 @@
+# topo-lang-rust/topo-check/analysis/catalog/RustSafePatterns.toml
+# Rust safety patterns whitelist — community-maintained
+# Non-external functions may only use listed patterns.
+# Unlisted = unsafe by default.
+
+[version]
+schema = 1
+
+# Safe Rust language constructs
+[constructs]
+safe = [
+    "if", "else", "for", "while", "loop", "match",
+    "let", "mut", "const", "static",
+    "fn", "struct", "enum", "impl", "trait", "type",
+    "where", "pub", "mod", "use", "crate", "self", "super",
+    "return", "break", "continue",
+    "as", "ref", "move",
+    "async", "await", "dyn",
+    "true", "false",
+]
+
+unsafe = [
+    "unsafe",
+    "transmute",
+    "from_raw",
+    "as_ptr",
+    "as_mut_ptr",
+    "into_raw",
+]
+
+# Safe standard library symbols (L2 whitelist)
+# Members of safe types/modules are transitively safe.
+[stdlib]
+safe = [
+    # Collections
+    "std::vec::Vec",
+    "std::collections::HashMap",
+    "std::collections::HashSet",
+    "std::collections::BTreeMap",
+    "std::collections::BTreeSet",
+    "std::collections::VecDeque",
+    "std::collections::LinkedList",
+    "std::collections::BinaryHeap",
+    # Strings
+    "std::string::String",
+    "std::str",
+    "std::fmt::format",
+    # Smart pointers
+    "std::boxed::Box",
+    "std::rc::Rc",
+    "std::rc::Weak",
+    "std::sync::Arc",
+    "std::sync::Weak",
+    "std::cell::Cell",
+    "std::cell::RefCell",
+    # Iterators
+    "std::iter::Iterator",
+    "std::iter::IntoIterator",
+    "std::iter::FromIterator",
+    # Option/Result
+    "std::option::Option",
+    "std::result::Result",
+    # Formatting
+    "std::fmt::Display",
+    "std::fmt::Debug",
+    "std::fmt::Formatter",
+    "std::fmt::Write",
+    # Sync primitives
+    "std::sync::Mutex",
+    "std::sync::RwLock",
+    "std::sync::Condvar",
+    "std::sync::Barrier",
+    "std::sync::Once",
+    # Atomic (safe wrappers)
+    "std::sync::atomic::AtomicBool",
+    "std::sync::atomic::AtomicI32",
+    "std::sync::atomic::AtomicI64",
+    "std::sync::atomic::AtomicU32",
+    "std::sync::atomic::AtomicU64",
+    "std::sync::atomic::AtomicUsize",
+    "std::sync::atomic::Ordering",
+    # Channels
+    "std::sync::mpsc::channel",
+    "std::sync::mpsc::sync_channel",
+    "std::sync::mpsc::Sender",
+    "std::sync::mpsc::Receiver",
+    # Time (read-only)
+    "std::time::Duration",
+    "std::time::Instant",
+    "std::time::SystemTime",
+    # Conversion traits
+    "std::convert::From",
+    "std::convert::Into",
+    "std::convert::TryFrom",
+    "std::convert::TryInto",
+    "std::convert::AsRef",
+    "std::convert::AsMut",
+    # Ops traits
+    "std::ops::Add",
+    "std::ops::Sub",
+    "std::ops::Mul",
+    "std::ops::Div",
+    "std::ops::Rem",
+    "std::ops::Neg",
+    "std::ops::Index",
+    "std::ops::IndexMut",
+    "std::ops::Deref",
+    "std::ops::DerefMut",
+    "std::ops::Range",
+    "std::ops::RangeInclusive",
+    "std::ops::Fn",
+    "std::ops::FnMut",
+    "std::ops::FnOnce",
+    # Clone / Copy / Default / Hash / Eq / Ord
+    "std::clone::Clone",
+    "std::marker::Copy",
+    "std::default::Default",
+    "std::hash::Hash",
+    "std::hash::Hasher",
+    "std::cmp::PartialEq",
+    "std::cmp::Eq",
+    "std::cmp::PartialOrd",
+    "std::cmp::Ord",
+    "std::cmp::Ordering",
+    "std::cmp::min",
+    "std::cmp::max",
+    # Numerics
+    "std::num::NonZeroU32",
+    "std::num::NonZeroU64",
+    "std::num::NonZeroUsize",
+    # Cow / Borrow
+    "std::borrow::Cow",
+    "std::borrow::Borrow",
+    "std::borrow::BorrowMut",
+    "std::borrow::ToOwned",
+    # Slice / Array
+    "std::slice",
+    "std::array",
+    # Mem (safe subset)
+    "std::mem::swap",
+    "std::mem::replace",
+    "std::mem::take",
+    "std::mem::size_of",
+    "std::mem::align_of",
+    "std::mem::drop",
+    # Threading (spawn is safe)
+    "std::thread::spawn",
+    "std::thread::sleep",
+    "std::thread::JoinHandle",
+    "std::thread::current",
+    "std::thread::yield_now",
+    # Core language types
+    "core::option::Option",
+    "core::result::Result",
+    "core::iter::Iterator",
+    "alloc::vec::Vec",
+    "alloc::string::String",
+    "alloc::boxed::Box",
+]

@@ -1,0 +1,10 @@
+[project]
+name = "project_multi_rust"
+
+[topo]
+root = "main.topo"
+
+[build]
+language = "rust"
+sources = ["src"]
+output = "main"

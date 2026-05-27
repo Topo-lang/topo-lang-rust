@@ -1,0 +1,47 @@
+// types.topo — order processing domain types
+
+using i32 = std::rust::i32;
+using bool = std::rust::bool;
+using f64 = std::rust::f64;
+
+namespace orders {
+  public:
+    type Order {
+      public:
+        explicit Order(i32 id, i32 customer_id);
+        i32 id() const;
+        i32 customer_id() const;
+        f64 total() const;
+        i32 item_count() const;
+        bool is_valid() const;
+      private:
+        i32 order_id;
+        i32 cust_id;
+        f64 amount;
+    }
+
+    type PaymentResult {
+      public:
+        bool approved() const;
+        i32 transaction_id() const;
+        f64 charged_amount() const;
+    }
+
+    type ShippingQuote {
+      public:
+        f64 cost() const;
+        i32 estimated_days() const;
+        i32 carrier_id() const;
+    }
+
+    type Invoice {
+      public:
+        explicit Invoice(i32 order_id, i32 transaction_id, f64 total);
+        i32 number() const;
+        f64 grand_total() const;
+        bool is_finalized() const;
+      private:
+        i32 inv_number;
+        f64 total;
+    }
+}

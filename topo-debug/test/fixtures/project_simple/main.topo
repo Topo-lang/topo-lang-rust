@@ -1,0 +1,36 @@
+// Rust counterpart of topo-lang-cpp/topo-debug/test/fixtures/project_simple/main.topo.
+//
+// Declares a `Buf` debug entry with literal-bounded views `first_half` and
+// `second_half` over the host-side `data: [i32; 8]` array. The matching
+// main.rs puts the array on the stack and calls `std::hint::black_box(&data)`
+// to keep it live, then stops on a sentinel line so
+// `topo debug query 'sum(first_half)'` sees 1+2+3+4 = 10 and
+// `sum(second_half)` sees 10+20+30+40 = 100.
+//
+// Validates the full success path for the rust backend: `topo build`
+// (via topo-build-llvm-rust) writes main.topo-dbg.json (with the views),
+// and `topo debug` auto-discovers it next to the binary, rewriting
+// `first_half` -> `data[0..4]` before driving the lldb adapter.
+
+using i32 = std::rust::i32;
+
+namespace app {
+  public:
+    type Buf {
+      public:
+        i32 data;
+    }
+}
+
+debug Buf {
+  view first_half from data[0..4];
+  view second_half from data[4..8];
+  // Plan 45 Phase 1 — `{ <query-expr> }` placeholders are evaluated by the
+  // summary renderer against the breakpoint's frame. At the breakpoint in
+  // main.rs:
+  //   sum(data)        = 110  (1+2+3+4 + 10+20+30+40)
+  //   sum(first_half)  = 10
+  //   sum(second_half) = 100
+  //   count(data)      = 8
+  summary "data sum={sum(data)} (halves {sum(first_half)} + {sum(second_half)}; count={count(data)})";
+}

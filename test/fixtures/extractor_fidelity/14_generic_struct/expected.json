@@ -1,0 +1,60 @@
+{
+  "functions": [],
+  "types": [
+    {
+      "fidelity": "source",
+      "fields": [
+        {
+          "fidelity": "source",
+          "name": "value",
+          "type": {
+            "nameParts": [
+              "T"
+            ]
+          }
+        }
+      ],
+      "qualifiedName": "Box",
+      "templateParams": [
+        {
+          "kind": "type",
+          "name": "T"
+        }
+      ]
+    },
+    {
+      "fidelity": "source",
+      "fields": [
+        {
+          "fidelity": "source",
+          "name": "key",
+          "type": {
+            "nameParts": [
+              "K"
+            ]
+          }
+        },
+        {
+          "fidelity": "source",
+          "name": "value",
+          "type": {
+            "nameParts": [
+              "V"
+            ]
+          }
+        }
+      ],
+      "qualifiedName": "Pair",
+      "templateParams": [
+        {
+          "kind": "type",
+          "name": "K"
+        },
+        {
+          "kind": "type",
+          "name": "V"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+[project]
+name = "containment_rust_arc_get_mut_unchecked"
+
+[topo]
+root = "topo/main.topo"
+
+[build]
+language = "rust"
+sources = ["src/*.rs"]
+
+[containment]
+mode = "force"

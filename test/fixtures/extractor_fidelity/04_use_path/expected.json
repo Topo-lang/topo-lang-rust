@@ -1,0 +1,26 @@
+{
+  "functions": [
+    {
+      "body": [
+        {
+          "kind": "return",
+          "value": {
+            "args": [],
+            "callee": "HashMap :: new",
+            "kind": "call"
+          }
+        }
+      ],
+      "fidelity": "source",
+      "params": [],
+      "qualifiedName": "make_map",
+      "returnType": {
+        "nameParts": [
+          "HashMap"
+        ]
+      },
+      "unsupported": []
+    }
+  ],
+  "types": []
+}

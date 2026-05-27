@@ -1,0 +1,5 @@
+{
+  "files": ["@INPUT@"],
+  "functions": ["read_u8"],
+  "symbolTable": {}
+}

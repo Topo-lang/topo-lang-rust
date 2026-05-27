@@ -1,0 +1,42 @@
+{
+  "functions": [
+    {
+      "body": [
+        {
+          "kind": "return",
+          "value": {
+            "kind": "varref",
+            "name": "x"
+          }
+        }
+      ],
+      "fidelity": "source",
+      "params": [
+        {
+          "name": "x",
+          "type": {
+            "nameParts": [
+              "&",
+              "str"
+            ]
+          }
+        }
+      ],
+      "qualifiedName": "borrow",
+      "returnType": {
+        "nameParts": [
+          "&",
+          "str"
+        ]
+      },
+      "templateParams": [
+        {
+          "kind": "lifetime",
+          "name": "a"
+        }
+      ],
+      "unsupported": []
+    }
+  ],
+  "types": []
+}

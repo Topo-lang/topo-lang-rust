@@ -1,0 +1,46 @@
+{
+  "functions": [
+    {
+      "body": [],
+      "fidelity": "source",
+      "params": [
+        {
+          "name": "_",
+          "type": {
+            "nameParts": [
+              "T"
+            ]
+          }
+        }
+      ],
+      "qualifiedName": "dump",
+      "returnType": {
+        "nameParts": [
+          "void"
+        ]
+      },
+      "templateParams": [
+        {
+          "bounds": [
+            {
+              "nameParts": [
+                "Clone"
+              ]
+            },
+            {
+              "nameParts": [
+                "std",
+                "fmt",
+                "Debug"
+              ]
+            }
+          ],
+          "kind": "type",
+          "name": "T"
+        }
+      ],
+      "unsupported": []
+    }
+  ],
+  "types": []
+}

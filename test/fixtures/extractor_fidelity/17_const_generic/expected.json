@@ -1,0 +1,31 @@
+{
+  "functions": [],
+  "types": [
+    {
+      "fidelity": "source",
+      "fields": [
+        {
+          "fidelity": "source",
+          "name": "data",
+          "type": {
+            "nameParts": [
+              "[u8; N]"
+            ]
+          }
+        }
+      ],
+      "qualifiedName": "Buffer",
+      "templateParams": [
+        {
+          "bound": {
+            "nameParts": [
+              "usize"
+            ]
+          },
+          "kind": "nontype",
+          "name": "N"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+[package]
+name = "project_simple_rust"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "project_simple_rust"
+crate-type = ["lib"]
+
+# Workaround for issue
+# `rust-topo-build-hardcoded-features-topo-all-runtime` —
+# topo-build-llvm-rust unconditionally passes `--features topo/all-runtime`
+# to cargo rustc, so the project needs a real `topo` dep for cargo to
+# accept the feature. Substituted at configure time so the path tracks
+# the worktree this fixture is built in.
+[dependencies]
+topo = { path = "@TOPO_RUST_RUNTIME_DIR@", default-features = false }

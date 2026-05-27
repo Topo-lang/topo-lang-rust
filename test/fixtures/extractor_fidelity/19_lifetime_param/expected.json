@@ -1,0 +1,36 @@
+{
+  "functions": [],
+  "types": [
+    {
+      "fidelity": "source",
+      "fields": [
+        {
+          "fidelity": "source",
+          "name": "value",
+          "type": {
+            "nameParts": [
+              "&",
+              "T"
+            ]
+          }
+        }
+      ],
+      "qualifiedName": "Holder",
+      "templateParams": [
+        {
+          "kind": "lifetime",
+          "name": "a"
+        },
+        {
+          "bound": {
+            "nameParts": [
+              "'a"
+            ]
+          },
+          "kind": "type",
+          "name": "T"
+        }
+      ]
+    }
+  ]
+}

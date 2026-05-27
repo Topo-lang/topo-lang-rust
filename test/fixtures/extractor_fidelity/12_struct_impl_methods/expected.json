@@ -1,0 +1,81 @@
+{
+  "functions": [
+    {
+      "body": [
+        {
+          "kind": "compoundassign",
+          "op": "+",
+          "target": {
+            "kind": "memberaccess",
+            "member": "value",
+            "object": {
+              "kind": "varref",
+              "name": "self"
+            }
+          },
+          "value": {
+            "kind": "literal",
+            "litKind": "int",
+            "value": "1"
+          }
+        }
+      ],
+      "fidelity": "source",
+      "params": [],
+      "qualifiedName": "Counter::increment",
+      "returnType": {
+        "nameParts": [
+          "void"
+        ]
+      },
+      "unsupported": []
+    },
+    {
+      "body": [
+        {
+          "kind": "return",
+          "value": {
+            "fields": [
+              {
+                "name": "value",
+                "value": {
+                  "kind": "literal",
+                  "litKind": "int",
+                  "value": "0"
+                }
+              }
+            ],
+            "kind": "construct",
+            "typeName": "Counter"
+          }
+        }
+      ],
+      "fidelity": "source",
+      "params": [],
+      "qualifiedName": "Counter::new",
+      "returnType": {
+        "nameParts": [
+          "Counter"
+        ]
+      },
+      "unsupported": []
+    }
+  ],
+  "types": [
+    {
+      "fidelity": "source",
+      "fields": [
+        {
+          "fidelity": "source",
+          "name": "value",
+          "type": {
+            "nameParts": [
+              "i32"
+            ]
+          }
+        }
+      ],
+      "qualifiedName": "Counter"
+    }
+  ]
+}

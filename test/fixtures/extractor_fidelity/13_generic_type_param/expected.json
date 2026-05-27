@@ -1,0 +1,40 @@
+{
+  "functions": [
+    {
+      "body": [
+        {
+          "kind": "return",
+          "value": {
+            "kind": "varref",
+            "name": "x"
+          }
+        }
+      ],
+      "fidelity": "source",
+      "params": [
+        {
+          "name": "x",
+          "type": {
+            "nameParts": [
+              "T"
+            ]
+          }
+        }
+      ],
+      "qualifiedName": "id",
+      "returnType": {
+        "nameParts": [
+          "T"
+        ]
+      },
+      "templateParams": [
+        {
+          "kind": "type",
+          "name": "T"
+        }
+      ],
+      "unsupported": []
+    }
+  ],
+  "types": []
+}

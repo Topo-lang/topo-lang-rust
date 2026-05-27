@@ -1,0 +1,25 @@
+[project]
+name = "quickstart_rust"
+
+[topo]
+root = "topo/processor.topo"
+
+[build]
+language = "rust"
+sources = ["src"]
+output = "quickstart_rust"
+
+[completeness]
+ignore_main = true
+ignore_constructors = true
+ignore_patterns = [
+    "*::new",
+    "orders::Order",
+    "orders::Order::*",
+    "orders::PaymentResult",
+    "orders::PaymentResult::*",
+    "orders::ShippingQuote",
+    "orders::ShippingQuote::*",
+    "orders::Invoice",
+    "orders::Invoice::*",
+]

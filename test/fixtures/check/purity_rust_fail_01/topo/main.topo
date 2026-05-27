@@ -1,0 +1,13 @@
+// Purity violation: a parallel stage function writes to a `static mut` global.
+
+namespace app {
+  public:
+    void run();
+    void compute();
+    void render();
+
+    fn run {
+        stage<1> compute();
+        stage<1> render();
+    }
+}

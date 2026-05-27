@@ -1,0 +1,16 @@
+// Purity violation: a parallel stage function writes to a module-level
+// `static mut` declared near a `thread_local!` block (verifies the
+// extractor doesn't misclassify items inside the macro and still finds
+// adjacent module-level globals).
+
+namespace app {
+  public:
+    void run();
+    void stepA();
+    void stepB();
+
+    fn run {
+        stage<1> stepA();
+        stage<1> stepB();
+    }
+}

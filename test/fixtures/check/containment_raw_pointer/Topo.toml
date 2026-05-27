@@ -1,0 +1,12 @@
+[project]
+name = "containment_rust_raw_pointer"
+
+[topo]
+root = "topo/main.topo"
+
+[build]
+language = "rust"
+sources = ["src/*.rs"]
+
+[containment]
+mode = "force"

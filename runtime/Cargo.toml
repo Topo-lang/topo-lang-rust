@@ -1,0 +1,24 @@
+[package]
+name = "topo"
+version = "0.1.0"
+edition = "2021"
+description = "Topo runtime bindings for Rust — parallel, adaptive, and pipeline support"
+
+[dependencies]
+topo-macros = { path = "../runtime-macros", optional = true }
+# Idiomatic Rust-ecosystem TOML library (the `tomllib` analogue). Used
+# only by the `config` bridge module; the pure-semantics `config_model`
+# core has no dependency on it. `toml::Value` exposes a first-class
+# Datetime variant, which is what lets the model's type contract reject a
+# TOML date/time at parity with the Python suite.
+toml = "0.8"
+
+[features]
+default = []
+macros = ["topo-macros"]
+jit = []
+parallel = []
+adaptive = []
+arena = []
+observe = []
+all-runtime = ["parallel", "adaptive", "arena", "observe", "jit"]

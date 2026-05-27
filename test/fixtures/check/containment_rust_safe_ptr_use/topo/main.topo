@@ -1,0 +1,5 @@
+namespace app {
+  public:
+    integer pass_by_ref(integer x);
+    integer mutate_by_ref(integer x);
+}

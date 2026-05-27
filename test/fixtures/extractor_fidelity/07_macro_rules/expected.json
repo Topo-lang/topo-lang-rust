@@ -1,0 +1,26 @@
+{
+  "functions": [
+    {
+      "body": [
+        {
+          "kind": "return",
+          "value": {
+            "kind": "literal",
+            "litKind": "int",
+            "value": "100"
+          }
+        }
+      ],
+      "fidelity": "source",
+      "params": [],
+      "qualifiedName": "sibling",
+      "returnType": {
+        "nameParts": [
+          "i32"
+        ]
+      },
+      "unsupported": []
+    }
+  ],
+  "types": []
+}

@@ -1,0 +1,27 @@
+// Rust counterpart of topo-lang-cpp/topo-debug/test/fixtures/project_multi/main.topo.
+//
+// Two host arrays in scope (`data_a: [i32; 4]`, `data_b: [i32; 4]`) — the
+// summary template references both, so resolving it requires the multi-var
+// adapter protocol (Phase 4) + summary batching (Phase 1) on the rust side.
+// At the breakpoint in main.rs:
+//   sum(data_a)              = 10        (1+2+3+4)
+//   sum(data_b)              = 100       (10+20+30+40)
+//   sum(data_a)+sum(data_b)  = 110
+//   max(data_b)-max(data_a)  = 40 - 4 = 36
+
+using i32 = std::rust::i32;
+
+namespace app {
+  public:
+    type TwoArrays {
+      public:
+        i32 data_a;
+        i32 data_b;
+    }
+}
+
+debug TwoArrays {
+  view a from data_a[0..4];
+  view b from data_b[0..4];
+  summary "a={sum(data_a)}, b={sum(data_b)}, total={sum(data_a)+sum(data_b)}, span={max(data_b)-max(data_a)}";
+}

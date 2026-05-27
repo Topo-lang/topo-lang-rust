@@ -1,0 +1,5 @@
+{
+  "files": ["@INPUT@"],
+  "functions": ["Foo::double"],
+  "symbolTable": {}
+}

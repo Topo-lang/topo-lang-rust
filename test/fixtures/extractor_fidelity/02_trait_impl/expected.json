@@ -1,0 +1,49 @@
+{
+  "functions": [
+    {
+      "body": [
+        {
+          "kind": "return",
+          "value": {
+            "kind": "binaryop",
+            "lhs": {
+              "kind": "varref",
+              "name": "x"
+            },
+            "op": "mul",
+            "rhs": {
+              "kind": "literal",
+              "litKind": "int",
+              "value": "2"
+            }
+          }
+        }
+      ],
+      "fidelity": "source",
+      "params": [
+        {
+          "name": "x",
+          "type": {
+            "nameParts": [
+              "i32"
+            ]
+          }
+        }
+      ],
+      "qualifiedName": "Foo::double",
+      "returnType": {
+        "nameParts": [
+          "i32"
+        ]
+      },
+      "unsupported": []
+    }
+  ],
+  "types": [
+    {
+      "fidelity": "source",
+      "fields": [],
+      "qualifiedName": "Foo"
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+[project]
+name = "containment_rust_slice_from_raw_parts"
+
+[topo]
+root = "topo/main.topo"
+
+[build]
+language = "rust"
+sources = ["src/*.rs"]
+
+[containment]
+mode = "force"

@@ -1,0 +1,11 @@
+// GENERATED — do not edit. Produced by topo-lang-rust/topo-init/CMakeLists.txt
+// (configure_file) from topo-lang-rust/topo-debug/lldb_formatter.py. Embeds
+// the Plan 41 T2 Path 1 native-lldb formatter so `topo init` lays down a
+// self-contained scaffold.
+
+namespace topo::lang {
+
+extern const char kRustLldbFormatterScript[] =
+    R"TOPO_LLDB_FMT(@TOPO_RUST_LLDB_FORMATTER_SOURCE@)TOPO_LLDB_FMT";
+
+} // namespace topo::lang

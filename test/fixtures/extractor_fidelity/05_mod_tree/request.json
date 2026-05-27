@@ -1,0 +1,5 @@
+{
+  "files": ["@INPUT@"],
+  "functions": ["foo::bar::baz"],
+  "symbolTable": {}
+}

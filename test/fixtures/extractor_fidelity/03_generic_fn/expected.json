@@ -1,0 +1,79 @@
+{
+  "functions": [
+    {
+      "body": [
+        {
+          "condition": {
+            "kind": "binaryop",
+            "lhs": {
+              "kind": "varref",
+              "name": "a"
+            },
+            "op": "greater",
+            "rhs": {
+              "kind": "varref",
+              "name": "b"
+            }
+          },
+          "elseBody": [
+            {
+              "kind": "return",
+              "value": {
+                "kind": "varref",
+                "name": "b"
+              }
+            }
+          ],
+          "kind": "if",
+          "thenBody": [
+            {
+              "kind": "return",
+              "value": {
+                "kind": "varref",
+                "name": "a"
+              }
+            }
+          ]
+        }
+      ],
+      "fidelity": "source",
+      "params": [
+        {
+          "name": "a",
+          "type": {
+            "nameParts": [
+              "T"
+            ]
+          }
+        },
+        {
+          "name": "b",
+          "type": {
+            "nameParts": [
+              "T"
+            ]
+          }
+        }
+      ],
+      "qualifiedName": "max",
+      "returnType": {
+        "nameParts": [
+          "T"
+        ]
+      },
+      "templateParams": [
+        {
+          "bound": {
+            "nameParts": [
+              "Ord"
+            ]
+          },
+          "kind": "type",
+          "name": "T"
+        }
+      ],
+      "unsupported": []
+    }
+  ],
+  "types": []
+}

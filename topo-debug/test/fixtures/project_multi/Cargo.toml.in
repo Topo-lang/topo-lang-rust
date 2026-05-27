@@ -1,0 +1,14 @@
+[package]
+name = "project_multi_rust"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "project_multi_rust"
+crate-type = ["lib"]
+
+# Workaround for issue
+# `rust-topo-build-hardcoded-features-topo-all-runtime` — see the
+# project_simple sibling Cargo.toml.in for context.
+[dependencies]
+topo = { path = "@TOPO_RUST_RUNTIME_DIR@", default-features = false }
