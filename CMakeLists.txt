@@ -19,8 +19,12 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 include(TopoLangRustCompilerFlags)
 
 # ── Upstream Topo packages ────────────────────────────
-find_package(topo-core CONFIG REQUIRED)
-find_package(topo-lang CONFIG REQUIRED)
+if(NOT TARGET topo::core::TopoBasic)
+    find_package(topo-core CONFIG REQUIRED)
+endif()
+if(NOT TARGET topo::lang::TopoLang)
+    find_package(topo-lang CONFIG REQUIRED)
+endif()
 
 # ── External dependencies ─────────────────────────────
 find_package(nlohmann_json CONFIG REQUIRED)
@@ -42,7 +46,9 @@ if(TOPO_LANG_RUST_ENABLE_LLVM)
     # Pull it in quietly so its targets become available when the package
     # is on CMAKE_PREFIX_PATH; absence is fine because topo-debug-rust
     # self-skips when the target isn't imported.
-    find_package(topo-lang-cpp CONFIG QUIET)
+    if(NOT TARGET topo::lang-cpp::TopoCppPlugin)
+        find_package(topo-lang-cpp CONFIG QUIET)
+    endif()
     # Existing TOPO_ENABLE_LLVM-gated subdir CMakeLists rely on this name
     # to fire their content.
     set(TOPO_ENABLE_LLVM ON)
@@ -95,7 +101,7 @@ endif()
 
 # ── Tests ─────────────────────────────────────────────
 option(TOPO_LANG_RUST_BUILD_TESTS "Build topo-lang-rust tests" ON)
-if(TOPO_LANG_RUST_BUILD_TESTS AND PROJECT_IS_TOP_LEVEL)
+if(TOPO_LANG_RUST_BUILD_TESTS AND (PROJECT_IS_TOP_LEVEL OR TOPO_META_DRIVING_TESTS))
     enable_testing()
     include(FetchContent)
     FetchContent_Declare(googletest

@@ -80,7 +80,7 @@ set_property(TARGET tiny_multi_rs
 # `--features topo/all-runtime` flag the rust driver hardcodes resolves
 # against a real dep (see issue
 # `rust-topo-build-hardcoded-features-topo-all-runtime` for why).
-set(TOPO_RUST_RUNTIME_DIR "${CMAKE_SOURCE_DIR}/topo-lang-rust/runtime"
+set(TOPO_RUST_RUNTIME_DIR "${PROJECT_SOURCE_DIR}/runtime"
     CACHE INTERNAL "Path to the topo rust runtime crate (for fixture Cargo.toml templates)")
 
 set(_PROJECT_SIMPLE_RS_SRC ${CMAKE_CURRENT_SOURCE_DIR}/fixtures/project_simple)

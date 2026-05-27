@@ -9,7 +9,7 @@ target_link_libraries(topo-lang-rust-tests PRIVATE
     GTest::gtest_main
 )
 target_include_directories(topo-lang-rust-tests PRIVATE
-    ${CMAKE_SOURCE_DIR}/topo-check   # for analysis/stub/RustStubGenerator.h
+    ${PROJECT_SOURCE_DIR}/topo-check   # for analysis/stub/RustStubGenerator.h
 )
 topo_set_compiler_flags(topo-lang-rust-tests)
 # MinGW on GHA: cached upstream topo-install may have been built against a
@@ -36,7 +36,7 @@ if(TOPO_LANG_RUST_ENABLE_LLVM)
         GTest::gtest_main
     )
     set(_topo_extract_rust_binary
-        "${CMAKE_SOURCE_DIR}/topo-check/extractor/target/release/topo-extract-rust${CMAKE_EXECUTABLE_SUFFIX}")
+        "${PROJECT_SOURCE_DIR}/topo-check/extractor/target/release/topo-extract-rust${CMAKE_EXECUTABLE_SUFFIX}")
     target_compile_definitions(topo-lang-rust-extractor-fidelity-tests PRIVATE
         RUST_FIDELITY_FIXTURES_DIR="${CMAKE_CURRENT_SOURCE_DIR}/fixtures/extractor_fidelity"
         RUST_EXTRACTOR_BINARY="${_topo_extract_rust_binary}"
@@ -45,7 +45,7 @@ if(TOPO_LANG_RUST_ENABLE_LLVM)
     topo_set_compiler_flags(topo-lang-rust-extractor-fidelity-tests)
     gtest_discover_tests(topo-lang-rust-extractor-fidelity-tests DISCOVERY_TIMEOUT 30
         PROPERTIES LABELS "toolchain;lang-rust;extractor-fidelity" TIMEOUT 60
-        ENVIRONMENT "TOPO_EXTRACT_ROOT=${CMAKE_SOURCE_DIR}")
+        ENVIRONMENT "TOPO_EXTRACT_ROOT=${PROJECT_SOURCE_DIR}")
 
     # check-e2e suite needs TopoCheckRunner (owned by topo-cli) to drive the
     # full check pipeline. Pull topo-cli in quietly; if its check-runner

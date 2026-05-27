@@ -1,6 +1,7 @@
 add_library(TopoRustDriver STATIC
     RustDriver.cpp
 )
+add_library(topo::lang-rust::TopoRustDriver ALIAS TopoRustDriver)
 
 target_include_directories(TopoRustDriver PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
