@@ -1,6 +1,6 @@
 // RustExtractorFidelityTest.cpp
 //
-// M4.2 — Golden fidelity tests for topo-extract-rust.
+// Golden fidelity tests for topo-extract-rust.
 //
 // For each fixture directory under RUST_FIDELITY_FIXTURES_DIR:
 //   - input.rs       — Rust source file to extract from
@@ -566,11 +566,11 @@ TEST(RustExtractorFidelity, ConstGenericDefault) {
     runNamed("21_const_default");
 }
 
-// Sanity check: the fixture root must contain at least 10 entries (M4.2).
+// Sanity check: the fixture root must contain at least 10 entries.
 TEST(RustExtractorFidelity, FixtureRootHasAtLeastTenEntries) {
     auto dirs = discoverFixtures();
     EXPECT_GE(dirs.size(), 10u)
-        << "M4.2 acceptance: at least 10 extractor fidelity fixtures required;"
+        << "fixture acceptance: at least 10 extractor fidelity fixtures required;"
            " found "
         << dirs.size() << " in " << RUST_FIDELITY_FIXTURES_DIR;
 }

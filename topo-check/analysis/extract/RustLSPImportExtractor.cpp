@@ -6,6 +6,7 @@
 
 #include "RustLSPImportExtractor.h"
 #include "RustUnsafeCatalog.h"
+#include "analysis/extract/CppImportExtractor.h"
 
 #include <cctype>
 #include <cstring>
