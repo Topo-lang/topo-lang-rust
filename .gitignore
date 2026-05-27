@@ -3,6 +3,11 @@
 /build-*/
 /out/
 /cmake-build-*/
+# Rust / Cargo build artifacts (topo-check/extractor/target/, ...).
+# Cargo.lock is NOT ignored — topo-extract-rust is a binary crate, and
+# Cargo convention is to commit the lockfile for binaries to keep
+# builds reproducible.
+target/
 
 # CMake
 CMakeCache.txt
