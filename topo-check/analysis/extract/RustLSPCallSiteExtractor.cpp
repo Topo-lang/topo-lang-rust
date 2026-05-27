@@ -8,7 +8,6 @@
 #include "RustLSPUtils.h"
 #include "RustUnsafeCatalog.h"
 #include "RustAnalyzerBridge.h"
-#include "analysis/extract/CppCallSiteExtractor.h"
 #include "topo/Check/CapabilityCatalog.h"
 
 #include <string>
