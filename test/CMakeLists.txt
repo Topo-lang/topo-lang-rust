@@ -25,8 +25,7 @@ gtest_discover_tests(topo-lang-rust-tests DISCOVERY_TIMEOUT 30 PROPERTIES LABELS
 
 # Extractor fidelity tests + check E2E tests depend on the cargo-built
 # extractor binary and the plugin aggregator (TopoRustPlugin), both of
-# which are gated behind TOPO_LANG_RUST_ENABLE_LLVM. See
-# .aidesk/live/40-issue/split-topo-lang-rust-llvm-scope-deferred.md.
+# which are gated behind TOPO_LANG_RUST_ENABLE_LLVM.
 if(TOPO_LANG_RUST_ENABLE_LLVM)
     add_executable(topo-lang-rust-extractor-fidelity-tests
         unit/RustExtractorFidelityTest.cpp
