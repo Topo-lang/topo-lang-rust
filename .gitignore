@@ -1,6 +1,5 @@
 # Build directories
 /build/
-/build-*/
 /out/
 /cmake-build-*/
 # Rust / Cargo build artifacts (topo-check/extractor/target/, ...).
