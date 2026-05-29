@@ -1,11 +1,11 @@
-error: #[topo_pipeline] takes no arguments today (got `stage = "ingest"`); see .aidesk/base/60-spec/topo-lang-rust/topo-pipeline-macro.md
- --> tests/cases/fail_unknown_attr.rs:8:17
+error: #[topo_pipeline] takes no arguments today (got `stage = "ingest"`)
+ --> tests/cases/fail_unknown_attr.rs:7:17
   |
-8 | #[topo_pipeline(stage = "ingest")]
+7 | #[topo_pipeline(stage = "ingest")]
   |                 ^^^^^
 
 error[E0425]: cannot find function `would_be_pipelined` in this scope
-  --> tests/cases/fail_unknown_attr.rs:12:5
+  --> tests/cases/fail_unknown_attr.rs:11:5
    |
-12 |     would_be_pipelined();
+11 |     would_be_pipelined();
    |     ^^^^^^^^^^^^^^^^^^ not found in this scope
