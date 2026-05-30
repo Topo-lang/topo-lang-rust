@@ -495,8 +495,8 @@ TEST(RustExtractorFidelity, StructImplMethods) {
 TEST(RustExtractorFidelity, GenericTypeParam) {
     runNamed("13_generic_type_param");
 }
-// `pub struct Box<T> { value: T }` — the headline payoff of closing
-// rust-extractor-omits-itemstruct-types: a struct with generic type
+// `pub struct Box<T> { value: T }` — the headline payoff of fixing the
+// extractor's dropped item-struct types: a struct with generic type
 // parameters now round-trips through TranspileType.templateParams. Without
 // the extractor change the type was silently dropped (module.types stayed
 // empty), so this fixture also pins the regression of that gap.

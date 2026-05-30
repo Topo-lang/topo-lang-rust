@@ -278,8 +278,9 @@ TEST(RustContainment, ContainmentSafeBox) {
 // --- L2 deep-mode coverage ---
 // These force cfg.deepMode = true so the RustAnalyzerBridge +
 // RustSafetyAnalyzer path actually runs through checkContainment.  The
-// tests above all exercise L1 only — see
-// checker-l2-synthetic-caller-attribution.md for why this matters.
+// tests above all exercise L1 only — L2 deep mode must attribute each
+// call site to its real enclosing function, so it needs separate
+// coverage here.
 
 class RustContainmentL2 : public ::testing::Test {
 protected:

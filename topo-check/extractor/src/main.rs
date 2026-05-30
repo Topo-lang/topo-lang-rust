@@ -1559,8 +1559,7 @@ const EXIT_SERIALIZE: i32 = 4;
 /// entry instead of an OOM. The cap is overridable via the
 /// ``TOPO_EXTRACT_RUST_MAX_FILE_BYTES`` env var to accommodate
 /// legitimately giant generated sources (which a power user would already
-/// be tuning anyway). Audit issue
-/// ``rust-extractor-stdin-path-no-traversal-guard`` covered the
+/// be tuning anyway). The path-traversal hardening covered the
 /// canonicalisation half; this cap closes the bound-memory half.
 const DEFAULT_MAX_FILE_BYTES: u64 = 8 * 1024 * 1024;
 
@@ -1574,8 +1573,8 @@ fn max_file_bytes() -> u64 {
 /// Emit a structured ``{"error": ..., "kind": ...}`` envelope on stdout
 /// so the parent caller (``topo-check``) sees a parseable JSON object
 /// rather than a Rust panic backtrace. Mirrors the per-file error shape
-/// used by ``topo_extract_python.py``'s ``fileErrors`` array (closes
-/// audit issue ``rust-extractor-main-panics-on-malformed-stdin``).
+/// used by ``topo_extract_python.py``'s ``fileErrors`` array (so a
+/// malformed stdin request never escapes as a panic backtrace).
 fn emit_error_envelope(kind: &str, message: &str) {
     // serde_json::to_string is fallible only on non-Send/non-Sync types,
     // which str-only payloads cannot hit; ``unwrap_or_else`` keeps the
@@ -1617,7 +1616,7 @@ fn run() -> i32 {
     let mut all_types: Vec<TranspileType> = Vec::new();
     let mut all_unsupported: Vec<String> = Vec::new();
 
-    // Per principle ``input-validation-at-system-boundary``: every path
+    // Validate input at the system boundary: every path
     // read from the JSON stdin request is untrusted host-side input. The
     // ``TOPO_EXTRACT_ROOT`` env var lets the parent process (topo-check)
     // pin a workspace root the extractor must stay under. Absent the

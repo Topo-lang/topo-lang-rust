@@ -7,8 +7,7 @@ edition = "2021"
 name = "project_multi_rust"
 crate-type = ["lib"]
 
-# Workaround for issue
-# `rust-topo-build-hardcoded-features-topo-all-runtime` — see the
+# Workaround for the rust driver's hardcoded runtime feature — see the
 # project_simple sibling Cargo.toml.in for context.
 [dependencies]
 topo = { path = "@TOPO_RUST_RUNTIME_DIR@", default-features = false }

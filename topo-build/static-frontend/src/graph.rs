@@ -5,7 +5,7 @@
 //! data model. Keeping the same shape — and especially the same
 //! order-insensitive `semantic_key` — is deliberate: it is what makes
 //! the static path's graph directly comparable to the runtime bridge's
-//! graph for the proposal's headline round-trip / graph==graph'
+//! graph for the topo-app design's headline round-trip / graph==graph'
 //! acceptance.
 
 use std::fmt::Write as _;

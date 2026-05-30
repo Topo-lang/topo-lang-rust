@@ -1,8 +1,8 @@
 //! `topo-app-static-rust` CLI: statically analyze a Rust topo-app
 //! source file and print the equivalent `.topo` to stdout.
 //!
-//! This is the `topo-build`-side static analysis front-end the proposal
-//! assigns to the compile-time track ("scan framework API calls at
+//! This is the `topo-build`-side static analysis front-end the topo-app
+//! design assigns to the compile-time path ("scan framework API calls at
 //! compile time → build the logic graph → emit `.topo`"). It executes
 //! none of the analyzed program.
 

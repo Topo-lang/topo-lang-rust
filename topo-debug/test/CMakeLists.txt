@@ -78,8 +78,8 @@ set_property(TARGET tiny_multi_rs
 # writes its outputs there, not into the source checkout. The Cargo.toml
 # template gets the path to the topo runtime crate substituted in so the
 # `--features topo/all-runtime` flag the rust driver hardcodes resolves
-# against a real dep (see issue
-# `rust-topo-build-hardcoded-features-topo-all-runtime` for why).
+# against a real dep (the driver passes that feature unconditionally, so
+# the fixture must declare a real `topo` dep for cargo to accept it).
 set(TOPO_RUST_RUNTIME_DIR "${PROJECT_SOURCE_DIR}/runtime"
     CACHE INTERNAL "Path to the topo rust runtime crate (for fixture Cargo.toml templates)")
 

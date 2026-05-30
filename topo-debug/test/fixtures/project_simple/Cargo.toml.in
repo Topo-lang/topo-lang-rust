@@ -7,8 +7,7 @@ edition = "2021"
 name = "project_simple_rust"
 crate-type = ["lib"]
 
-# Workaround for issue
-# `rust-topo-build-hardcoded-features-topo-all-runtime` —
+# Workaround for the rust driver's hardcoded runtime feature:
 # topo-build-llvm-rust unconditionally passes `--features topo/all-runtime`
 # to cargo rustc, so the project needs a real `topo` dep for cargo to
 # accept the feature. Substituted at configure time so the path tracks

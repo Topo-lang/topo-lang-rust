@@ -1,7 +1,7 @@
 //! Graph -> .topo emission.
 //!
 //! Byte-for-byte the same emitter form as the Python runtime bridge's
-//! `_emit.py`. The proposal's decisive constraint is that the framework
+//! `_emit.py`. The topo-app design's decisive constraint is that the framework
 //! and `.topo` are two reversible views of one logic structure; the
 //! static path is just another `.topo` producer, so it must emit the *same*
 //! surface the runtime bridge does — otherwise round-trip equivalence

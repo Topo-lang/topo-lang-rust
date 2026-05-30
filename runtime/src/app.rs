@@ -1,12 +1,12 @@
 //! topo-app Rust surface: idiomatic registration, not a macro DSL.
 //!
-//! The proposal fixes the philosophy (pure In->Out Functor + flow DAG)
+//! The topo-app design fixes the philosophy (pure In->Out Functor + flow DAG)
 //! and leaves each topo-lang to project it onto its own idioms. Python
 //! projects it onto a decorator reading `__annotations__`. Rust has no
 //! decorators and no runtime reflection, so the Rust projection is an
 //! explicit registration call whose In/Out are supplied through the
 //! type system ([`crate::schema::TopoType`] / [`crate::record!`]) rather
-//! than re-declared in hand-written `.topo` (the proposal's
+//! than re-declared in hand-written `.topo` (the topo-app design's
 //! "no duplicate declaration" rule: the In/Out live in the registration,
 //! and the `.topo` file is generated from it).
 //!
@@ -20,7 +20,7 @@ use crate::schema::TypeRef;
 /// A topo-app program: the in-memory logic graph plus the callables.
 ///
 /// One `App` owns one namespace and one flow — enough to exercise every
-/// proposal mapping rule without productionizing.
+/// topo-app mapping rule without productionizing.
 pub struct App {
     graph: Graph,
 }
@@ -54,7 +54,7 @@ impl App {
     /// Declare a linear logic chain: `flow("p", [a, b, c])` becomes
     /// edges a->b->c->void. A [`Stage::Parallel`] member fans in/out
     /// from the same neighbours (same-source / same-sink == same-stage
-    /// parallel candidates, per the proposal mapping table) — identical
+    /// parallel candidates, per the topo-app mapping table) — identical
     /// edge construction to `app.py::flow`.
     pub fn flow(&mut self, name: impl Into<String>, stages: Vec<Stage>) {
         let mut edges: Vec<Edge> = Vec::new();
@@ -102,7 +102,7 @@ impl App {
     }
 }
 
-/// A read-only graph snapshot view (proposal "config(app)"): the whole
+/// A read-only graph snapshot view (topo-app "config(app)"): the whole
 /// graph in one place, the `.topo` emitter, and the round-trip.
 pub struct AppConfig<'a> {
     app: &'a App,
@@ -207,7 +207,7 @@ impl From<String> for Stage {
 }
 
 /// Independent units on the same input == same-stage parallel
-/// candidates (proposal mapping rule). Purity of these is enforced by
+/// candidates (topo-app mapping rule). Purity of these is enforced by
 /// core `PurityCheck` after emission, never self-asserted here — exactly
 /// `app.py::parallel`'s contract.
 pub fn parallel<I, S>(members: I) -> Stage

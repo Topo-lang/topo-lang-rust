@@ -110,7 +110,7 @@ fn graph_enumerable_from_static_scan() {
 
 #[test]
 fn source_handler_has_no_input() {
-    // A no-parameter handler is a legal source handler (spec §7a).
+    // A no-parameter handler is a legal source handler.
     let src = r#"
         fn seed() -> i64 { 0 }
         fn build_app() -> topo::App {

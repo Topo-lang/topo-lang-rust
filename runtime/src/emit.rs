@@ -1,6 +1,6 @@
 //! Graph -> `.topo` emission.
 //!
-//! The deterministic mapping the proposal commits to ("deterministic
+//! The deterministic mapping the topo-app design commits to ("deterministic
 //! rules for producing `.topo`, not black-magic inference"), not
 //! inference — a direct port of
 //! `topo-lang-python/runtime/topo/_emit.py`:

@@ -8,7 +8,7 @@
 //!
 //! ## The registration surface (Rust idiom projection)
 //!
-//! The proposal fixes the philosophy and lets each host project it onto
+//! The topo-app design fixes the philosophy and lets each host project it onto
 //! its own idioms (C++ templates, Python decorators, "Rust macro").
 //! The Rust projection keeps registration as ordinary, statically
 //! visible calls so a compile-time scan — not execution — recovers the
@@ -109,7 +109,7 @@ fn type_to_ref(ty: &syn::Type, records: &HashMap<String, RecordDef>) -> Result<T
             )))
         }
         // A handler is a value-semantics Functor: references hide the
-        // target data in a side effect (handler/flow proposal), so a
+        // target data in a side effect (topo-app handler/flow model), so a
         // `&T` / `&mut T` In/Out is rejected, not silently unwrapped.
         syn::Type::Reference(_) => Err(AnalyzeError(
             "handler In/Out must be by value (value semantics, no \
@@ -170,7 +170,7 @@ fn parse_record_macro(
     let mut fields = Vec::new();
     for (fname, fty) in parsed.fields {
         // Record fields are scalar in the vertical slice (one nesting
-        // level, matching the proposal's order example); resolve with an
+        // level, matching the topo-app design's order example); resolve with an
         // empty record map so a non-scalar field surfaces as an error
         // rather than a silent miss.
         let tref = type_to_ref(&fty, &HashMap::new()).ok()?;

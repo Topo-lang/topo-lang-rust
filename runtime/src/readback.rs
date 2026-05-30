@@ -1,7 +1,7 @@
 //! Read `.topo` back into a [`Graph`] by parsing it with the real
 //! toolchain.
 //!
-//! Round-trip fidelity is the proposal's decisive constraint. To prove
+//! Round-trip fidelity is the topo-app design's decisive constraint. To prove
 //! it honestly, read-back goes through the *actual* Topo parser, not a
 //! Rust re-implementation of the grammar (which could agree with the
 //! emitter by accident). We invoke the fresh `topo --ast-dump` and
@@ -55,7 +55,7 @@ impl From<std::io::Error> for ReadbackError {
 /// Parse a record `.topo` spelling (`record<a: T, b: U>`) or a scalar.
 ///
 /// Record fields in the slice are scalar-typed (one nesting level,
-/// matching the proposal's order example), so a top-level comma split is
+/// matching the topo-app design's order example), so a top-level comma split is
 /// sufficient — identical assumption to `_readback.py::_parse_type`.
 fn parse_type(spec: &str) -> TypeRef {
     let spec = spec.trim();

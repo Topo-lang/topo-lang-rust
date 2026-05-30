@@ -2,12 +2,11 @@
 //!
 //! Spawns the built binary, drives it through stdin/stdout, and asserts
 //! the structured exit codes and JSON error envelopes documented in
-//! ``main.rs``. Pins audit issues
-//! - ``rust-extractor-main-panics-on-malformed-stdin`` (no panic, JSON
-//!   envelope, stable non-zero exit)
-//! - ``rust-extractor-stdin-path-no-traversal-guard`` (per-file size
-//!   cap path: an oversize file becomes a per-file unsupported entry
-//!   rather than an OOM).
+//! ``main.rs``. Pins two hardening guarantees:
+//! - malformed stdin produces no panic — a JSON error envelope and a
+//!   stable non-zero exit instead;
+//! - the per-file size cap path: an oversize file becomes a per-file
+//!   unsupported entry rather than an OOM.
 //!
 //! ``cargo test`` rebuilds the binary on demand via
 //! ``env!("CARGO_BIN_EXE_topo-extract-rust")``.
