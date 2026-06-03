@@ -88,7 +88,7 @@ endif()
 # LLVM-coupled toolchain layer.
 if(TOPO_LANG_RUST_ENABLE_LLVM)
     set(_TOPO_EXTRACT_RUST_BIN
-        "${CMAKE_CURRENT_SOURCE_DIR}/topo-check/extractor/target/release/topo-extract-rust"
+        "${CMAKE_CURRENT_SOURCE_DIR}/topo-check/extractor/target/release/topo-extract-rust${CMAKE_EXECUTABLE_SUFFIX}"
     )
     add_custom_target(topo-extract-rust ALL
         COMMAND cargo build --release --manifest-path ${CMAKE_CURRENT_SOURCE_DIR}/topo-check/extractor/Cargo.toml
