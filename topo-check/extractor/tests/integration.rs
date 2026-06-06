@@ -130,3 +130,138 @@ fn oversize_file_becomes_unsupported_entry_not_oom() {
     assert!(stderr.contains("exceeds cap"),
             "stderr should explain the per-file rejection: {}", stderr);
 }
+
+/// Run the extractor over an in-memory Rust source and return the parsed
+/// TranspileModule JSON. The source is written under a private temp root and
+/// `TOPO_EXTRACT_ROOT` is pinned to it so the path sanitiser accepts the file.
+fn extract_source(source: &str) -> serde_json::Value {
+    let tmp = std::env::temp_dir().join(format!(
+        "topo-extract-rust-wire-{}",
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_nanos())
+            .unwrap_or(0)));
+    std::fs::create_dir_all(&tmp).unwrap();
+    let path = tmp.join("input.rs");
+    std::fs::write(&path, source).unwrap();
+    let req = serde_json::json!({
+        "files": [path.file_name().unwrap().to_string_lossy()],
+        "functions": [],
+    })
+    .to_string();
+
+    let mut child = Command::new(bin())
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .env("TOPO_EXTRACT_ROOT", &tmp)
+        .spawn()
+        .expect("spawn topo-extract-rust");
+    child
+        .stdin
+        .as_mut()
+        .unwrap()
+        .write_all(req.as_bytes())
+        .unwrap();
+    let out = child.wait_with_output().expect("wait child");
+    let _ = std::fs::remove_dir_all(&tmp);
+    assert_eq!(out.status.code().unwrap_or(-1), 0, "extractor should exit 0");
+    serde_json::from_str(String::from_utf8_lossy(&out.stdout).trim())
+        .expect("stdout should be TranspileModule JSON")
+}
+
+/// Find the single statement in `read_u8`-style single-function modules.
+fn only_fn_body(module: &serde_json::Value) -> &Vec<serde_json::Value> {
+    let fns = module["functions"].as_array().expect("functions array");
+    assert_eq!(fns.len(), 1, "expected exactly one function: {}", module);
+    fns[0]["body"].as_array().expect("body array")
+}
+
+/// Regression for the extractor -> C++ deserializer wire contract
+/// (extractor-to-cpp-deserializer-contract-mismatch). The C++
+/// `deserializeModule` discriminates on word-form operators, reads `litKind`
+/// with value `"boolean"`, requires `vardecl.type` to be a TypeNode (it does
+/// `j.at("type")` then `typeNodeFromJson` -> `j.at("nameParts")`), and follows
+/// an omit-when-absent convention for `init` / `value`. Emitting symbolic ops,
+/// `"bool"`, or an explicit `null` type/init/value either silently mis-maps to
+/// the wrong C++ enum or throws and drops the whole module. This asserts the
+/// corrected encodings directly on extractor output.
+#[test]
+fn compound_assign_emits_word_form_op() {
+    // `x += 1` must serialize as `op:"add"`, NOT the symbolic `"+"` (which
+    // the C++ BinaryOp deserializer maps to Shr -> `x >>= 1`).
+    let module = extract_source("pub fn f(mut x: i32) { x += 1; }\n");
+    let body = only_fn_body(&module);
+    let stmt = &body[0];
+    assert_eq!(stmt["kind"], "compoundassign");
+    assert_eq!(stmt["op"], "add",
+               "compound-assign op must be word-form, not symbolic: {}", stmt);
+}
+
+#[test]
+fn untyped_local_emits_empty_type_node_not_null() {
+    // `let x = b;` must emit `type: {"nameParts": []}`, never `type: null`
+    // (the C++ VarDecl deserializer unconditionally feeds `type` to
+    // typeNodeFromJson, which reads `nameParts` and throws on null).
+    let module = extract_source("pub fn f(b: u8) -> u8 { let x = b; x }\n");
+    let body = only_fn_body(&module);
+    let vardecl = &body[0];
+    assert_eq!(vardecl["kind"], "vardecl");
+    assert!(!vardecl["type"].is_null(),
+            "untyped local must not emit `type: null`: {}", vardecl);
+    assert!(vardecl["type"]["nameParts"].is_array(),
+            "untyped local type must be a TypeNode with nameParts: {}", vardecl);
+}
+
+#[test]
+fn uninitialised_local_omits_init_key() {
+    // `let x;` must drop the `init` key entirely (the C++ side guards with
+    // `j.contains("init")` and would call deserializeExpr(null) on an
+    // explicit `"init": null`, throwing).
+    let module = extract_source("pub fn f() { let x; let _ = x; }\n");
+    let body = only_fn_body(&module);
+    let vardecl = &body[0];
+    assert_eq!(vardecl["kind"], "vardecl");
+    assert!(vardecl.get("init").is_none(),
+            "uninitialised local must omit `init`, not emit null: {}", vardecl);
+}
+
+#[test]
+fn bare_return_omits_value_key() {
+    // `return;` must drop the `value` key (same contains-then-at("kind")
+    // throw on the C++ side as init above).
+    let module = extract_source("pub fn f() { return; }\n");
+    let body = only_fn_body(&module);
+    let ret = &body[0];
+    assert_eq!(ret["kind"], "return");
+    assert!(ret.get("value").is_none(),
+            "bare return must omit `value`, not emit null: {}", ret);
+}
+
+#[test]
+fn bool_literal_uses_recognised_kind() {
+    // `true` must emit `litKind:"boolean"` (the C++ LiteralKind deserializer
+    // maps the unknown `"bool"` to Integer).
+    let module = extract_source("pub fn f() -> bool { true }\n");
+    let body = only_fn_body(&module);
+    let ret = &body[0];
+    assert_eq!(ret["kind"], "return");
+    assert_eq!(ret["value"]["litKind"], "boolean",
+               "bool literal must use the recognised `boolean` kind: {}", ret);
+}
+
+#[test]
+fn borrow_and_deref_surface_as_unsupported() {
+    // `&x` / `&mut x` / `*p` have no faithful UnaryOp; mapping them to a
+    // recognised op silently corrupts semantics (borrow -> negate, deref ->
+    // logical-not). They must surface as `unsupported`.
+    let module = extract_source(
+        "pub fn f(x: i32, p: i32) { let _r = &x; let _m = &mut x; let _d = *p; }\n");
+    let body = only_fn_body(&module);
+    for (i, name) in ["&", "&mut", "*"].iter().enumerate() {
+        let init = &body[i]["init"];
+        assert_eq!(init["kind"], "unsupported",
+                   "{} should surface as unsupported, not a mis-mapped op: {}",
+                   name, init);
+    }
+}

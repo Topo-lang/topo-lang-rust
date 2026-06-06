@@ -4,7 +4,7 @@
       "body": [
         {
           "kind": "compoundassign",
-          "op": "+",
+          "op": "add",
           "target": {
             "kind": "memberaccess",
             "member": "value",

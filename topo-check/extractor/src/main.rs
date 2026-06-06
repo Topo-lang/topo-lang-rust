@@ -415,12 +415,23 @@ fn convert_expr(expr: &syn::Expr) -> serde_json::Value {
         }
 
         syn::Expr::Unary(un) => {
-            let op = unaryop_str(&un.op);
-            serde_json::json!({
-                "kind": "unaryop",
-                "op": op,
-                "operand": convert_expr(&un.expr)
-            })
+            // Deref `*x` has no TranspileModel UnaryOp. Mapping it to any
+            // recognised op would change semantics (a pointer read rendered
+            // as a boolean `!x`); surface it as Unsupported so the body is
+            // not silently miscompiled. `!`/`-` map faithfully to not/negate.
+            if matches!(un.op, syn::UnOp::Deref(_)) {
+                serde_json::json!({
+                    "kind": "unsupported",
+                    "description": "Rust deref `*`"
+                })
+            } else {
+                let op = unaryop_str(&un.op);
+                serde_json::json!({
+                    "kind": "unaryop",
+                    "op": op,
+                    "operand": convert_expr(&un.expr)
+                })
+            }
         }
 
         syn::Expr::Call(call) => {
@@ -517,11 +528,16 @@ fn convert_expr(expr: &syn::Expr) -> serde_json::Value {
         }
 
         syn::Expr::Return(r) => {
-            let value = r.expr.as_ref().map(|e| convert_expr(e));
-            serde_json::json!({
-                "kind": "return",
-                "value": value
-            })
+            // Omit-when-absent: a bare `return;` drops the `value` key rather
+            // than emitting `"value": null`. The C++ ReturnStmt deserializer
+            // guards with `j.contains("value")`, so a present-but-null value
+            // would call `deserializeExpr(null)` → `null.at("kind")` → throw,
+            // losing the whole module.
+            let mut obj = serde_json::json!({ "kind": "return" });
+            if let Some(e) = r.expr.as_ref() {
+                obj["value"] = convert_expr(e);
+            }
+            obj
         }
 
         syn::Expr::If(ei) => convert_if_expr(ei),
@@ -564,16 +580,21 @@ fn convert_expr(expr: &syn::Expr) -> serde_json::Value {
         syn::Expr::Paren(p) => convert_expr(&p.expr),
 
         syn::Expr::Reference(r) => {
-            let inner = convert_expr(&r.expr);
-            let op = if r.mutability.is_some() {
-                "&mut"
+            // A Rust borrow (`&x` / `&mut x`) has no faithful TranspileModel
+            // UnaryOp. The C++ UnaryOp deserializer recognises only
+            // negate/not/bitnot/inc/dec; any other op string (including
+            // `&`/`&mut`) falls through to `UnaryOp::Negate`, so a borrow
+            // would silently deserialize as a numeric negation `-x`. Surface
+            // as Unsupported instead of mis-mapping — the downstream emitter
+            // can re-render the borrow from this stable shape.
+            let desc = if r.mutability.is_some() {
+                "Rust mutable borrow `&mut`"
             } else {
-                "&"
+                "Rust borrow `&`"
             };
             serde_json::json!({
-                "kind": "unaryop",
-                "op": op,
-                "operand": inner
+                "kind": "unsupported",
+                "description": desc
             })
         }
 
@@ -710,13 +731,20 @@ fn convert_lit(lit: &syn::Lit) -> serde_json::Value {
         }),
         syn::Lit::Bool(b) => serde_json::json!({
             "kind": "literal",
-            "litKind": "bool",
+            // The C++ LiteralKind deserializer recognises
+            // integer/float/boolean/string; `"bool"` is unknown and falls
+            // through to `Integer`, so `true`/`false` would deserialize as a
+            // numeric literal. Emit the recognised `"boolean"` spelling.
+            "litKind": "boolean",
             "value": if b.value { "true" } else { "false" }
         }),
         syn::Lit::Char(c) => serde_json::json!({
-            "kind": "literal",
-            "litKind": "char",
-            "value": c.value().to_string()
+            // A Rust `char` has no TranspileModel LiteralKind. Mapping it to
+            // `string` would lose the char/str distinction on round-trip and
+            // `"char"` deserializes (wrongly) as `Integer`; surface it as
+            // Unsupported instead of silently mis-typing the literal.
+            "kind": "unsupported",
+            "description": format!("Rust char literal '{}'", c.value())
         }),
         _ => serde_json::json!({
             "kind": "literal",
@@ -730,14 +758,25 @@ fn convert_stmt(stmt: &syn::Stmt) -> serde_json::Value {
     match stmt {
         syn::Stmt::Local(local) => {
             let name = pat_name(&local.pat);
-            let ty = pat_type(&local.pat);
-            let init = local.init.as_ref().map(|li| convert_expr(&li.expr));
-            serde_json::json!({
+            // The C++ VarDecl deserializer always does `j.at("type")` and
+            // feeds it to `typeNodeFromJson`, which unconditionally reads
+            // `nameParts` — a `null` (or absent) `type` throws and drops the
+            // whole module. An untyped `let x = 1;` therefore emits an empty
+            // TypeNode (`{"nameParts": []}`), not `null`. `init` follows the
+            // omit-when-absent contract: an uninitialised `let x;` drops the
+            // key entirely rather than emitting `null` (the C++ side guards
+            // with `j.contains("init")` and would otherwise call
+            // `deserializeExpr(null)` → `null.at("kind")` → throw).
+            let ty = pat_type(&local.pat).unwrap_or_default();
+            let mut obj = serde_json::json!({
                 "kind": "vardecl",
                 "name": name,
                 "type": ty,
-                "init": init
-            })
+            });
+            if let Some(li) = local.init.as_ref() {
+                obj["init"] = convert_expr(&li.expr);
+            }
+            obj
         }
         syn::Stmt::Expr(expr, semi) => {
             // Distinguish statement-like exprs (which the converter
@@ -748,6 +787,13 @@ fn convert_stmt(stmt: &syn::Stmt) -> serde_json::Value {
             // in an ExprStmt (when followed by a semicolon) or a
             // Return (when the final trailing expression supplies the
             // function's implicit return).
+            // `Expr::Block` is intentionally NOT listed here. Its `convert_expr`
+            // form is an `unsupported`-kinded *expression*, not a statement;
+            // passing it through into statement position would make the C++
+            // `stmtKindFromStr("unsupported")` fall to ExprStmt and then throw
+            // on the missing `expr` key. Routing it through the normal path
+            // wraps it in an `exprstmt` (trailing-semi) or a `return` (tail
+            // position) so it stays parseable.
             let stmt_like = matches!(
                 expr,
                 syn::Expr::Assign(_)
@@ -758,7 +804,6 @@ fn convert_stmt(stmt: &syn::Stmt) -> serde_json::Value {
                     | syn::Expr::Break(_)
                     | syn::Expr::Continue(_)
                     | syn::Expr::Match(_)
-                    | syn::Expr::Block(_)
             );
             let is_compound_assign = matches!(
                 expr,
@@ -850,19 +895,24 @@ fn pat_type(pat: &syn::Pat) -> Option<TypeNode> {
 // ---------------------------------------------------------------------------
 
 /// Returns the base operator string for compound assignment operators, or None
-/// if the operator is not a compound assignment.
+/// if the operator is not a compound assignment. The string is the word-form
+/// vocabulary the C++ deserializer's `from_json(BinaryOp&)` understands
+/// (`add`/`sub`/…) — the same set `binop_str` emits. Emitting the symbolic
+/// source spelling here (`+`, `<<`) collapses to `BinaryOp::Shr` on the C++
+/// side because every unrecognised string falls through to that default, so
+/// `x += 1` would deserialize as `x >>= 1`.
 fn compound_assign_op(op: &syn::BinOp) -> Option<&'static str> {
     match op {
-        syn::BinOp::AddAssign(_) => Some("+"),
-        syn::BinOp::SubAssign(_) => Some("-"),
-        syn::BinOp::MulAssign(_) => Some("*"),
-        syn::BinOp::DivAssign(_) => Some("/"),
-        syn::BinOp::RemAssign(_) => Some("%"),
-        syn::BinOp::BitAndAssign(_) => Some("&"),
-        syn::BinOp::BitOrAssign(_) => Some("|"),
-        syn::BinOp::BitXorAssign(_) => Some("^"),
-        syn::BinOp::ShlAssign(_) => Some("<<"),
-        syn::BinOp::ShrAssign(_) => Some(">>"),
+        syn::BinOp::AddAssign(_) => Some("add"),
+        syn::BinOp::SubAssign(_) => Some("sub"),
+        syn::BinOp::MulAssign(_) => Some("mul"),
+        syn::BinOp::DivAssign(_) => Some("div"),
+        syn::BinOp::RemAssign(_) => Some("mod"),
+        syn::BinOp::BitAndAssign(_) => Some("bitand"),
+        syn::BinOp::BitOrAssign(_) => Some("bitor"),
+        syn::BinOp::BitXorAssign(_) => Some("bitxor"),
+        syn::BinOp::ShlAssign(_) => Some("shl"),
+        syn::BinOp::ShrAssign(_) => Some("shr"),
         _ => None,
     }
 }
@@ -973,10 +1023,9 @@ fn binop_str(op: &syn::BinOp) -> &'static str {
 // the wire shape's sake; downstream emitters can render them as `&`.
 fn unaryop_str(op: &syn::UnOp) -> &'static str {
     match op {
-        // Deref `*x` has no Topo UnaryOp; surface as Not to avoid a
-        // crash but expect downstream to flag (rare in the bodies the
-        // equivalence suite exercises).
-        syn::UnOp::Deref(_) => "not",
+        // Deref `*x` has no Topo UnaryOp and is handled as Unsupported in
+        // `convert_expr` before reaching here; the arm is kept only so an
+        // unexpected caller stays total. `!`/`-` map faithfully.
         syn::UnOp::Not(_) => "not",
         syn::UnOp::Neg(_) => "negate",
         _ => "not",

@@ -9,7 +9,9 @@
           },
           "kind": "vardecl",
           "name": "x",
-          "type": null
+          "type": {
+            "nameParts": []
+          }
         },
         {
           "kind": "return",
