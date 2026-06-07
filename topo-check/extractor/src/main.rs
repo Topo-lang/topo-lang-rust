@@ -377,7 +377,28 @@ fn return_type_node(ret: &syn::ReturnType) -> TypeNode {
 // syn::Expr -> JSON statement/expression
 // ---------------------------------------------------------------------------
 
-fn convert_expr(expr: &syn::Expr) -> serde_json::Value {
+/// Maximum AST nesting the converter will descend before bailing out with an
+/// `unsupported` marker. Pathologically nested input (`(((…)))`, deeply
+/// chained binary ops, a tower of nested blocks) would otherwise recurse
+/// `convert_expr`/`convert_block`/`convert_stmt` unbounded and overflow the
+/// stack — a crash, not the structured per-construct `unsupported` envelope
+/// the rest of the converter promises. 256 is far past any hand-written body
+/// yet shallow enough to stay well within the default thread stack. The depth
+/// counter is threaded through every recursive edge (expr/stmt/block/if/pat)
+/// so the bound holds no matter which construct does the nesting.
+const MAX_CONVERT_DEPTH: usize = 256;
+
+fn convert_expr(expr: &syn::Expr, depth: usize) -> serde_json::Value {
+    // Bail before descending past the bound: emit the same `unsupported`
+    // envelope used for constructs with no faithful model representation, so a
+    // deeply nested input degrades gracefully instead of overflowing the stack.
+    if depth >= MAX_CONVERT_DEPTH {
+        return serde_json::json!({
+            "kind": "unsupported",
+            "description": "expression too deeply nested"
+        });
+    }
+    let depth = depth + 1;
     match expr {
         syn::Expr::Lit(lit) => convert_lit(&lit.lit),
 
@@ -400,16 +421,16 @@ fn convert_expr(expr: &syn::Expr) -> serde_json::Value {
                 serde_json::json!({
                     "kind": "compoundassign",
                     "op": base_op,
-                    "target": convert_expr(&bin.left),
-                    "value": convert_expr(&bin.right)
+                    "target": convert_expr(&bin.left, depth),
+                    "value": convert_expr(&bin.right, depth)
                 })
             } else {
                 let op = binop_str(&bin.op);
                 serde_json::json!({
                     "kind": "binaryop",
                     "op": op,
-                    "lhs": convert_expr(&bin.left),
-                    "rhs": convert_expr(&bin.right)
+                    "lhs": convert_expr(&bin.left, depth),
+                    "rhs": convert_expr(&bin.right, depth)
                 })
             }
         }
@@ -429,7 +450,7 @@ fn convert_expr(expr: &syn::Expr) -> serde_json::Value {
                 serde_json::json!({
                     "kind": "unaryop",
                     "op": op,
-                    "operand": convert_expr(&un.expr)
+                    "operand": convert_expr(&un.expr, depth)
                 })
             }
         }
@@ -444,7 +465,8 @@ fn convert_expr(expr: &syn::Expr) -> serde_json::Value {
             // dereference call.func into a local first.
             let func = &*call.func;
             let callee = quote::quote!(#func).to_string();
-            let args: Vec<serde_json::Value> = call.args.iter().map(convert_expr).collect();
+            let args: Vec<serde_json::Value> =
+                call.args.iter().map(|a| convert_expr(a, depth)).collect();
             serde_json::json!({
                 "kind": "call",
                 "callee": callee,
@@ -460,7 +482,8 @@ fn convert_expr(expr: &syn::Expr) -> serde_json::Value {
             let receiver_expr = &*mc.receiver;
             let receiver = quote::quote!(#receiver_expr).to_string();
             let callee = format!("{}.{}", receiver, mc.method);
-            let args: Vec<serde_json::Value> = mc.args.iter().map(convert_expr).collect();
+            let args: Vec<serde_json::Value> =
+                mc.args.iter().map(|a| convert_expr(a, depth)).collect();
             serde_json::json!({
                 "kind": "call",
                 "callee": callee,
@@ -469,7 +492,7 @@ fn convert_expr(expr: &syn::Expr) -> serde_json::Value {
         }
 
         syn::Expr::Field(f) => {
-            let obj = convert_expr(&f.base);
+            let obj = convert_expr(&f.base, depth);
             let member = match &f.member {
                 syn::Member::Named(ident) => ident.to_string(),
                 syn::Member::Unnamed(idx) => idx.index.to_string(),
@@ -482,8 +505,8 @@ fn convert_expr(expr: &syn::Expr) -> serde_json::Value {
         }
 
         syn::Expr::Index(idx) => {
-            let obj = convert_expr(&idx.expr);
-            let index = convert_expr(&idx.index);
+            let obj = convert_expr(&idx.expr, depth);
+            let index = convert_expr(&idx.index, depth);
             serde_json::json!({
                 "kind": "index",
                 "object": obj,
@@ -508,7 +531,7 @@ fn convert_expr(expr: &syn::Expr) -> serde_json::Value {
                     };
                     serde_json::json!({
                         "name": field_name,
-                        "value": convert_expr(&f.expr)
+                        "value": convert_expr(&f.expr, depth)
                     })
                 })
                 .collect();
@@ -522,8 +545,8 @@ fn convert_expr(expr: &syn::Expr) -> serde_json::Value {
         syn::Expr::Assign(a) => {
             serde_json::json!({
                 "kind": "assign",
-                "target": convert_expr(&a.left),
-                "value": convert_expr(&a.right)
+                "target": convert_expr(&a.left, depth),
+                "value": convert_expr(&a.right, depth)
             })
         }
 
@@ -535,16 +558,16 @@ fn convert_expr(expr: &syn::Expr) -> serde_json::Value {
             // losing the whole module.
             let mut obj = serde_json::json!({ "kind": "return" });
             if let Some(e) = r.expr.as_ref() {
-                obj["value"] = convert_expr(e);
+                obj["value"] = convert_expr(e, depth);
             }
             obj
         }
 
-        syn::Expr::If(ei) => convert_if_expr(ei),
+        syn::Expr::If(ei) => convert_if_expr(ei, depth),
 
         syn::Expr::While(w) => {
-            let cond = convert_expr(&w.cond);
-            let body = convert_block(&w.body);
+            let cond = convert_expr(&w.cond, depth);
+            let body = convert_block(&w.body, depth);
             serde_json::json!({
                 "kind": "while",
                 "condition": cond,
@@ -553,8 +576,8 @@ fn convert_expr(expr: &syn::Expr) -> serde_json::Value {
         }
 
         syn::Expr::ForLoop(fl) => {
-            let iter_expr = convert_expr(&fl.expr);
-            let body = convert_block(&fl.body);
+            let iter_expr = convert_expr(&fl.expr, depth);
+            let body = convert_block(&fl.body, depth);
             let var = pat_name(&fl.pat);
             serde_json::json!({
                 "kind": "for",
@@ -577,7 +600,7 @@ fn convert_expr(expr: &syn::Expr) -> serde_json::Value {
             })
         }
 
-        syn::Expr::Paren(p) => convert_expr(&p.expr),
+        syn::Expr::Paren(p) => convert_expr(&p.expr, depth),
 
         syn::Expr::Reference(r) => {
             // A Rust borrow (`&x` / `&mut x`) has no faithful TranspileModel
@@ -622,8 +645,8 @@ fn convert_expr(expr: &syn::Expr) -> serde_json::Value {
         }),
 
         syn::Expr::Range(r) => {
-            let start = r.start.as_ref().map(|e| convert_expr(e));
-            let end = r.end.as_ref().map(|e| convert_expr(e));
+            let start = r.start.as_ref().map(|e| convert_expr(e, depth));
+            let end = r.end.as_ref().map(|e| convert_expr(e, depth));
             serde_json::json!({
                 "kind": "unsupported",
                 "description": "range expression",
@@ -638,13 +661,13 @@ fn convert_expr(expr: &syn::Expr) -> serde_json::Value {
         }),
 
         syn::Expr::Match(m) => {
-            let subject = convert_expr(&m.expr);
+            let subject = convert_expr(&m.expr, depth);
             let cases: Vec<serde_json::Value> = m
                 .arms
                 .iter()
                 .map(|arm| {
-                    let value = convert_pat(&arm.pat);
-                    let body_expr = convert_expr(&arm.body);
+                    let value = convert_pat(&arm.pat, depth);
+                    let body_expr = convert_expr(&arm.body, depth);
                     // Wrap the body expression as a single-element body array
                     let body = vec![body_expr];
                     serde_json::json!({
@@ -692,16 +715,19 @@ fn convert_expr(expr: &syn::Expr) -> serde_json::Value {
     }
 }
 
-fn convert_if_expr(ei: &syn::ExprIf) -> serde_json::Value {
-    let cond = convert_expr(&ei.cond);
-    let then_body = convert_block(&ei.then_branch);
+fn convert_if_expr(ei: &syn::ExprIf, depth: usize) -> serde_json::Value {
+    // `convert_if_expr` recurses on `else if` chains; thread the depth bound
+    // through so a long `if/else if/else if/…` ladder is capped like any other
+    // nesting. The `cond` is already one level deeper than this node.
+    let cond = convert_expr(&ei.cond, depth);
+    let then_body = convert_block(&ei.then_branch, depth);
     let else_body = ei.else_branch.as_ref().map(|(_, e)| {
         if let syn::Expr::If(nested) = e.as_ref() {
-            vec![convert_if_expr(nested)]
+            vec![convert_if_expr(nested, depth)]
         } else if let syn::Expr::Block(eb) = e.as_ref() {
-            convert_block(&eb.block)
+            convert_block(&eb.block, depth)
         } else {
-            vec![convert_expr(e)]
+            vec![convert_expr(e, depth)]
         }
     });
     serde_json::json!({
@@ -754,7 +780,20 @@ fn convert_lit(lit: &syn::Lit) -> serde_json::Value {
     }
 }
 
-fn convert_stmt(stmt: &syn::Stmt) -> serde_json::Value {
+fn convert_stmt(stmt: &syn::Stmt, depth: usize) -> serde_json::Value {
+    // Depth bounds the statement→expression recursion (a `vardecl` init, a
+    // bare expression statement). `convert_block` passes its own depth in so a
+    // tower of nested blocks is capped alongside nested expressions.
+    if depth >= MAX_CONVERT_DEPTH {
+        return serde_json::json!({
+            "kind": "exprstmt",
+            "expr": {
+                "kind": "unsupported",
+                "description": "statement too deeply nested"
+            }
+        });
+    }
+    let depth = depth + 1;
     match stmt {
         syn::Stmt::Local(local) => {
             let name = pat_name(&local.pat);
@@ -774,7 +813,7 @@ fn convert_stmt(stmt: &syn::Stmt) -> serde_json::Value {
                 "type": ty,
             });
             if let Some(li) = local.init.as_ref() {
-                obj["init"] = convert_expr(&li.expr);
+                obj["init"] = convert_expr(&li.expr, depth);
             }
             obj
         }
@@ -808,7 +847,7 @@ fn convert_stmt(stmt: &syn::Stmt) -> serde_json::Value {
             let is_compound_assign = matches!(
                 expr,
                 syn::Expr::Binary(bin) if compound_assign_op(&bin.op).is_some());
-            let converted = convert_expr(expr);
+            let converted = convert_expr(expr, depth);
             if stmt_like {
                 // Block-like / control-flow expressions are statements
                 // in this position, regardless of trailing semicolon.
@@ -866,8 +905,12 @@ fn convert_stmt(stmt: &syn::Stmt) -> serde_json::Value {
     }
 }
 
-fn convert_block(block: &syn::Block) -> Vec<serde_json::Value> {
-    block.stmts.iter().map(convert_stmt).collect()
+fn convert_block(block: &syn::Block, depth: usize) -> Vec<serde_json::Value> {
+    block
+        .stmts
+        .iter()
+        .map(|s| convert_stmt(s, depth))
+        .collect()
 }
 
 // ---------------------------------------------------------------------------
@@ -918,7 +961,10 @@ fn compound_assign_op(op: &syn::BinOp) -> Option<&'static str> {
 }
 
 /// Convert a match arm pattern to a JSON value expression for SwitchCase.
-fn convert_pat(pat: &syn::Pat) -> serde_json::Value {
+/// `depth` is threaded through for the `Pat::Const` arm, which descends into a
+/// block (and thus back into the expr/stmt recursion) and must respect the
+/// same nesting bound.
+fn convert_pat(pat: &syn::Pat, depth: usize) -> serde_json::Value {
     match pat {
         syn::Pat::Ident(pi) => {
             // A catch-all binding (like `x`) or a named pattern
@@ -931,7 +977,7 @@ fn convert_pat(pat: &syn::Pat) -> serde_json::Value {
         syn::Pat::Or(po) => {
             // Multiple patterns (a | b): use the first one for the case value
             if let Some(first) = po.cases.first() {
-                convert_pat(first)
+                convert_pat(first, depth)
             } else {
                 serde_json::Value::Null
             }
@@ -951,7 +997,7 @@ fn convert_pat(pat: &syn::Pat) -> serde_json::Value {
         syn::Pat::Lit(pl) => convert_lit(&pl.lit),
         syn::Pat::Const(pc) => {
             // In syn 2, literal patterns in match arms may appear as Pat::Const
-            let stmts = convert_block(&pc.block);
+            let stmts = convert_block(&pc.block, depth);
             if stmts.len() == 1 {
                 stmts.into_iter().next().unwrap()
             } else {
@@ -1446,7 +1492,7 @@ impl FunctionCollector {
                     .collect();
 
                 let ret = return_type_node(&f.sig.output);
-                let body = convert_block(&f.block);
+                let body = convert_block(&f.block, 0);
                 let (template_params, unsupported) = collect_generics(&f.sig.generics);
 
                 self.functions.insert(
@@ -1568,7 +1614,7 @@ impl FunctionCollector {
                                 .collect();
 
                             let ret = return_type_node(&method.sig.output);
-                            let body = convert_block(&method.block);
+                            let body = convert_block(&method.block, 0);
                             let (template_params, unsupported) =
                                 collect_generics(&method.sig.generics);
 

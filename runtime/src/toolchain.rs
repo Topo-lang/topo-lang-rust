@@ -65,19 +65,27 @@ fn candidate_dirs() -> Vec<PathBuf> {
 }
 
 fn find(rel: &str) -> PathBuf {
-    let leaf = std::path::Path::new(rel)
-        .file_name()
-        .map(|s| s.to_owned())
-        .unwrap_or_default();
+    // `rel` always uses `/` separators (it is a hard-coded source-tree path),
+    // so the basename is the final `/`-segment.
+    let leaf = rel.rsplit('/').next().unwrap_or(rel);
+    // Probe both the unsuffixed name and the platform executable suffix.
+    // On Windows the binaries are `topo.exe` / `topo-check.exe`, so an
+    // unsuffixed probe never hits a file and `find` would panic; mirrors
+    // the Python `_candidate_paths_for`, which appends `.exe` on Windows.
+    // `EXE_SUFFIX` is "" off-Windows, so the extra probes are a no-op there
+    // and POSIX resolution is unchanged.
+    let suffixes: &[&str] = &["", std::env::consts::EXE_SUFFIX];
     for base in candidate_dirs() {
-        let cand = base.join(rel);
-        if cand.is_file() {
-            return cand;
-        }
-        // `TOPO_BIN_DIR` may point straight at a bin directory.
-        let flat = base.join(&leaf);
-        if flat.is_file() {
-            return flat;
+        for sfx in suffixes {
+            let cand = base.join(format!("{rel}{sfx}"));
+            if cand.is_file() {
+                return cand;
+            }
+            // `TOPO_BIN_DIR` may point straight at a bin directory.
+            let flat = base.join(format!("{leaf}{sfx}"));
+            if flat.is_file() {
+                return flat;
+            }
         }
     }
     panic!(

@@ -34,15 +34,23 @@ impl std::error::Error for CheckError {}
 
 fn topo_check_bin() -> Result<PathBuf, CheckError> {
     let rel = "topo-cli/tools/topo-check/topo-check";
+    // Probe both the unsuffixed name and the platform executable suffix: on
+    // Windows the binary is `topo-check.exe`, so an unsuffixed-only probe
+    // never resolves and the caller fails spuriously. `EXE_SUFFIX` is "" off
+    // Windows, so the extra probe is a no-op there and POSIX resolution is
+    // unchanged (mirrors the Python `_candidate_paths_for`).
+    let suffixes: &[&str] = &["", std::env::consts::EXE_SUFFIX];
     if let Ok(dir) = std::env::var("TOPO_BIN_DIR") {
         let base = PathBuf::from(&dir);
-        let nested = base.join(rel);
-        if nested.is_file() {
-            return Ok(nested);
-        }
-        let flat = base.join("topo-check");
-        if flat.is_file() {
-            return Ok(flat);
+        for sfx in suffixes {
+            let nested = base.join(format!("{rel}{sfx}"));
+            if nested.is_file() {
+                return Ok(nested);
+            }
+            let flat = base.join(format!("topo-check{sfx}"));
+            if flat.is_file() {
+                return Ok(flat);
+            }
         }
     }
     let manifest = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
@@ -51,9 +59,11 @@ fn topo_check_bin() -> Result<PathBuf, CheckError> {
         .and_then(|p| p.parent())
         .and_then(|p| p.parent())
     {
-        let cand = root.join("build").join(rel);
-        if cand.is_file() {
-            return Ok(cand);
+        for sfx in suffixes {
+            let cand = root.join("build").join(format!("{rel}{sfx}"));
+            if cand.is_file() {
+                return Ok(cand);
+            }
         }
     }
     Err(CheckError(

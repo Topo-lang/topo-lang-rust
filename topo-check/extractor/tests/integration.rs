@@ -251,6 +251,33 @@ fn bool_literal_uses_recognised_kind() {
 }
 
 #[test]
+fn deeply_nested_expression_bails_to_unsupported_not_stack_overflow() {
+    // Regression for the unbounded `convert_expr`/`convert_block` recursion
+    // (extractor-to-cpp-deserializer-contract-mismatch, residual instance):
+    // a pathologically nested expression must degrade to the structured
+    // `unsupported` envelope past MAX_CONVERT_DEPTH (256) rather than
+    // overflowing the converter's stack and aborting the process. We build a
+    // parenthesised tower well past the bound (each `(`/`)` is one
+    // `Expr::Paren` level) and assert the extractor still exits 0 with a
+    // parseable module — the deep node having collapsed to `unsupported`.
+    let depth = 600;
+    let inner = format!("{}1{}", "(".repeat(depth), ")".repeat(depth));
+    let source = format!("pub fn f() -> i32 {{ {} }}\n", inner);
+    let module = extract_source(&source);
+    let body = only_fn_body(&module);
+    // The function still yields exactly one (tail-return) statement; the deep
+    // chain inside it terminates in an `unsupported` marker instead of
+    // recursing without bound.
+    let serialized = serde_json::to_string(&body[0]).unwrap();
+    assert!(
+        serialized.contains("\"kind\":\"unsupported\"")
+            && serialized.contains("too deeply nested"),
+        "deep nesting must collapse to an `unsupported` marker, got: {}",
+        serialized
+    );
+}
+
+#[test]
 fn borrow_and_deref_surface_as_unsupported() {
     // `&x` / `&mut x` / `*p` have no faithful UnaryOp; mapping them to a
     // recognised op silently corrupts semantics (borrow -> negate, deref ->
