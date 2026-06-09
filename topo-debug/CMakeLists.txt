@@ -52,3 +52,14 @@ set_target_properties(topo-debug-rust PROPERTIES
 )
 
 install(TARGETS topo-debug-rust RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+
+# Test fixtures (tiny_vector_rs / tiny_multi_rs / project_simple / project_multi)
+# are built here and consumed by the topo-core/test rust adapter e2e block
+# ($<TARGET_FILE:topo-debug-rust>, get_target_property(... TOPO_FIXTURE_PATH)).
+# Mirrors topo-lang-cpp/topo-debug/CMakeLists.txt. Without this the fixtures
+# never build, so every e2e.topo-debug-rust.* self-skips on `TARGET
+# tiny_vector_rs` — i.e. the Rust adapter has no runtime coverage at all. Gated
+# off in standalone mode (only useful inside the monorepo e2e).
+if(TOPO_LANG_RUST_BUILD_TEST_FIXTURES)
+    add_subdirectory(test)
+endif()
