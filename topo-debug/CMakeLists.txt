@@ -44,14 +44,32 @@ else() # ELF
 endif()
 topo_set_compiler_flags(topo-debug-rust)
 
-# Mirror topo-debug-cpp's RPATH so the binary finds liblldb at runtime: the
-# build-host LLVM lib dir for dev runs, @loader_path/../lib for a packaged tree.
+# Mirror topo-debug-cpp's RPATH so the binary finds liblldb at runtime.
+# Prefer the stable unversioned Homebrew opt symlink over the versioned Cellar
+# keg LLVMConfig may resolve to (…/Cellar/llvm/22.1.7 → …/opt/llvm), so the
+# dev-fallback rpaths survive `brew upgrade llvm` patch bumps.
+set(_lldb_lib_dir "${LLVM_INSTALL_PREFIX}/lib")
+if(_lldb_lib_dir MATCHES "^(.+)/Cellar/(llvm[^/]*)/[^/]+/lib$")
+    set(_lldb_lib_dir_stable "${CMAKE_MATCH_1}/opt/${CMAKE_MATCH_2}/lib")
+    if(EXISTS "${_lldb_lib_dir_stable}")
+        set(_lldb_lib_dir "${_lldb_lib_dir_stable}")
+    endif()
+endif()
+# BUILD_RPATH covers dev runs from the build tree; INSTALL_RPATH keeps the
+# build-host dir as the dev fallback. topo_relocate_llvm_rpath below prepends
+# the relocation rpath (@loader_path/../lib / $ORIGIN/../lib) ahead of it AND
+# — on macOS — rewrites the absolute liblldb.<ver> load command to
+# @rpath/<name> on the installed copy. Without that rewrite the relocation
+# rpath is dead weight: dyld consults LC_RPATH only for @rpath/ load commands.
 set_target_properties(topo-debug-rust PROPERTIES
-    BUILD_RPATH "${LLVM_INSTALL_PREFIX}/lib"
-    INSTALL_RPATH "@loader_path/../lib;${LLVM_INSTALL_PREFIX}/lib"
+    BUILD_RPATH "${_lldb_lib_dir}"
+    INSTALL_RPATH "${_lldb_lib_dir}"
 )
 
 install(TARGETS topo-debug-rust RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+
+# Relocatable install: see the rpath note above.
+topo_relocate_llvm_rpath(topo-debug-rust liblldb)
 
 # Test fixtures (tiny_vector_rs / tiny_multi_rs / project_simple / project_multi)
 # are built here and consumed by the topo-core/test rust adapter e2e block
