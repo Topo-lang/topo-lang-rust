@@ -68,7 +68,8 @@ if(TOPO_LANG_RUST_ENABLE_LLVM)
             TOPO_TEST_FIXTURES_DIR="${CMAKE_CURRENT_SOURCE_DIR}/fixtures/check"
         )
         topo_set_compiler_flags(topo-lang-rust-check-tests)
-        gtest_discover_tests(topo-lang-rust-check-tests DISCOVERY_TIMEOUT 30 PROPERTIES LABELS "toolchain\;checker\;lang-rust" TIMEOUT 60)
+        # TIMEOUT 180: every L2 case boots rust-analyzer + cargo metadata.
+        gtest_discover_tests(topo-lang-rust-check-tests DISCOVERY_TIMEOUT 30 PROPERTIES LABELS "toolchain\;checker\;lang-rust" TIMEOUT 180)
     else()
         message(STATUS "topo-lang-rust: check-e2e tests skipped (topo-cli/TopoCheckRunner not on CMAKE_PREFIX_PATH)")
     endif()

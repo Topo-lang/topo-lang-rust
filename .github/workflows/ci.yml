@@ -18,6 +18,7 @@ env:
   TOPO_LANG_REF: main
   TOPO_LANG_CPP_REF: main
   TOPO_LLVM_REF: main
+  TOPO_CLI_REF: main
 
 jobs:
   build-and-test:
@@ -194,7 +195,7 @@ jobs:
       # liblldb (topo-debug link), libclang (topo-lang-cpp's extractor build,
       # part of the lang-cpp ENABLE_LLVM install this job depends on).
       - name: Install build deps + LLVM (macos)
-        run: brew install ninja llvm@22
+        run: brew install ninja llvm@22 rust rust-analyzer
 
       - name: Point find_package(LLVM/Clang) at brew llvm@22 (macos)
         run: |
@@ -287,6 +288,25 @@ jobs:
                 -DTOPO_LANG_CPP_ENABLE_LLVM=ON -DTOPO_LANG_CPP_BUILD_TESTS=OFF
           cmake --build "${RUNNER_TEMP}/lang-cpp-llvm-build" --target install
 
+      # Uncached on purpose: topo-cli is a thin router + small static lib,
+      # and an always-fresh build tracks its main without a cache key to
+      # bump. Plugins auto-detect to OFF (none on this prefix) — the
+      # checker-e2e suite links only the TopoCheckRunner static lib and
+      # registers this repo's plugin itself via TestMain. Profile CLI off:
+      # it would pull topo-v8 into the installed config's find_dependency
+      # chain.
+      - name: Build & install topo-cli (TopoCheckRunner export)
+        run: |
+          git clone --depth 1 --branch "${TOPO_CLI_REF}" \
+              https://github.com/topo-lang/topo-cli.git "${RUNNER_TEMP}/topo-cli-src"
+          cmake -S "${RUNNER_TEMP}/topo-cli-src" -B "${RUNNER_TEMP}/topo-cli-build" \
+                -G Ninja -DCMAKE_BUILD_TYPE=Release \
+                -DCMAKE_INSTALL_PREFIX="${RUNNER_TEMP}/topo-cli-install" \
+                -DCMAKE_PREFIX_PATH="${RUNNER_TEMP}/topo-install" \
+                -DCMAKE_TOOLCHAIN_FILE="${VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake" \
+                -DTOPO_CLI_ENABLE_PROFILE=OFF
+          cmake --build "${RUNNER_TEMP}/topo-cli-build" --target install
+
       # ── Configure THIS checkout with the LLVM gate ON; build only the
       #    adapter (skips the cargo extractor + driver targets) ──
       - name: Configure topo-lang-rust (ENABLE_LLVM=ON)
@@ -294,12 +314,15 @@ jobs:
           LLVM_ROOT="$(dirname "$(dirname "${LLVM_DIR}")")"
           cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release \
               -DTOPO_LANG_RUST_ENABLE_LLVM=ON \
-              -DTOPO_LANG_RUST_BUILD_TESTS=OFF \
-              -DCMAKE_PREFIX_PATH="${RUNNER_TEMP}/topo-install;${LLVM_ROOT}" \
+              -DTOPO_LANG_RUST_BUILD_TESTS=ON \
+              -DCMAKE_PREFIX_PATH="${RUNNER_TEMP}/topo-install;${RUNNER_TEMP}/topo-cli-install;${LLVM_ROOT}" \
               -DCMAKE_TOOLCHAIN_FILE="${VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake"
 
       - name: Build topo-debug-rust
         run: cmake --build build --target topo-debug-rust
+
+      - name: Build checker-e2e suite
+        run: cmake --build build --target topo-lang-rust-check-tests
 
       # Relocatable-install gate — mirrors topo-lang-cpp's topo-debug-cpp gate.
       # brew's liblldb has a VERSIONED basename (liblldb.22.1.7.dylib), so the
@@ -352,3 +375,35 @@ jobs:
           grep -qF "$WANT/$LLDB_NAME" <<<"$out" \
             || { echo "FAIL: liblldb not loaded from the bundled ../lib ($WANT)"; exit 1; }
           echo "PASS: topo-debug-rust relocates — runs (rc=$rc) loading bundled liblldb via @loader_path/../lib"
+
+      - name: Run checker-e2e suite
+        run: |
+          # --no-tests=error: if the topo-cli gate silently failed and the
+          # checker suite was never registered, the job FAILS rather than
+          # greening on zero tests.
+          ctest --test-dir build -L checker --output-on-failure --timeout 180 --no-tests=error
+
+      # The checker suite passes ctest even when its gtest cases
+      # GTEST_SKIP() (rust-analyzer absent / fixture extraction degraded) —
+      # "Passed" can mean "every case skipped". Re-run the binary and FAIL
+      # on any skip or zero passes (skip != pass).
+      - name: Assert L2 deep containment ran (skip != pass)
+        run: |
+          set +e
+          exe=$(find build -type f -name "topo-lang-rust-check-tests" 2>/dev/null | head -1)
+          if [ -z "${exe}" ]; then
+            echo "::error::topo-lang-rust-check-tests not built — topo-cli prefix missing at configure time?"; exit 1
+          fi
+          out=$("${exe}" 2>&1); rc=$?
+          printf '%s\n' "${out}" | tail -20
+          passed=$(printf '%s\n' "${out}" | grep -oE '\[  PASSED  \] [0-9]+ test' | grep -oE '[0-9]+' | tail -1)
+          skipped=$(printf '%s\n' "${out}" | grep -oE '\[  SKIPPED \] [0-9]+ test' | grep -oE '[0-9]+' | tail -1)
+          [ -z "${passed}" ] && passed=0
+          [ -z "${skipped}" ] && skipped=0
+          echo "topo-lang-rust-check-tests: ${passed} PASSED, ${skipped} skipped (exit ${rc})"
+          if [ "${rc}" -ne 0 ]; then
+            echo "::error::checker-e2e suite failed (exit ${rc})"; exit 1
+          fi
+          if [ "${skipped}" -gt 0 ] || [ "${passed}" -lt 1 ]; then
+            echo "::error::L2 deep containment did not RUN (rust-analyzer/cargo missing -> GTEST_SKIP; skip != pass)"; exit 1
+          fi
