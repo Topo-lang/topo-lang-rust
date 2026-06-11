@@ -277,7 +277,13 @@ std::vector<HostSymbol> RustSymbolExtractor::extractSymbols(const std::string& f
             }
         }
 
-        // Track braces on effective line
+        // Track braces on effective line. Record the depth right after the
+        // line's FIRST '{' — a declaration's body brace. A scope is only
+        // pushed below when that brace is still open at end of line;
+        // otherwise (one-liner like `pub struct Cart { capacity: i32 }`)
+        // the '}' already closed it and pushing would leak a scope entry
+        // that no later '}' can pop (its entry depth would sit below 0).
+        int lineFirstOpenDepth = -1;
         for (size_t i = 0; i < effectiveLine.size(); ++i) {
             char c = effectiveLine[i];
             // Skip string contents for brace counting
@@ -291,6 +297,7 @@ std::vector<HostSymbol> RustSymbolExtractor::extractSymbols(const std::string& f
             }
             if (c == '{') {
                 ++braceDepth;
+                if (lineFirstOpenDepth < 0) lineFirstOpenDepth = braceDepth;
             } else if (c == '}') {
                 --braceDepth;
                 if (braceDepth < 0) braceDepth = 0;
@@ -303,11 +310,19 @@ std::vector<HostSymbol> RustSymbolExtractor::extractSymbols(const std::string& f
 
         // --- Pattern matching on effective line ---
 
+        // The declaration's body brace is still open at end of line: scopes
+        // pushed for it pop when braceDepth returns to the pre-brace depth.
+        const bool lineScopeOpen =
+            lineFirstOpenDepth > 0 && braceDepth >= lineFirstOpenDepth;
+        const int lineScopeDepth = lineFirstOpenDepth - 1;
+
         // Module declaration with brace
         std::smatch modMatch;
         if (std::regex_search(effectiveLine, modMatch, modRegex)) {
             std::string modName = modMatch[1].str();
-            scopeStack.push_back({modName, braceDepth - 1, ScopeEntry::Mod});
+            if (lineScopeOpen) {
+                scopeStack.push_back({modName, lineScopeDepth, ScopeEntry::Mod});
+            }
             continue;
         }
 
@@ -329,8 +344,8 @@ std::vector<HostSymbol> RustSymbolExtractor::extractSymbols(const std::string& f
 
             result.push_back(std::move(sym));
 
-            if (effectiveLine.find('{') != std::string::npos) {
-                scopeStack.push_back({traitName, braceDepth - 1, ScopeEntry::Trait});
+            if (lineScopeOpen) {
+                scopeStack.push_back({traitName, lineScopeDepth, ScopeEntry::Trait});
             }
             continue;
         }
@@ -340,8 +355,8 @@ std::vector<HostSymbol> RustSymbolExtractor::extractSymbols(const std::string& f
         if (std::regex_search(effectiveLine, implMatch, implRegex)) {
             // implMatch[1] = trait name (if "Trait for"), implMatch[2] = type name
             std::string typeName = implMatch[2].str();
-            if (effectiveLine.find('{') != std::string::npos) {
-                scopeStack.push_back({typeName, braceDepth - 1, ScopeEntry::Impl});
+            if (lineScopeOpen) {
+                scopeStack.push_back({typeName, lineScopeDepth, ScopeEntry::Impl});
             }
             continue;
         }
@@ -365,9 +380,9 @@ std::vector<HostSymbol> RustSymbolExtractor::extractSymbols(const std::string& f
 
             result.push_back(std::move(sym));
 
-            if (effectiveLine.find('{') != std::string::npos) {
+            if (lineScopeOpen) {
                 auto kind = isStruct ? ScopeEntry::Struct : ScopeEntry::Enum;
-                scopeStack.push_back({name, braceDepth - 1, kind});
+                scopeStack.push_back({name, lineScopeDepth, kind});
             }
             continue;
         }

@@ -1,6 +1,7 @@
 # Lang type tests (header-only, no LLVM)
 add_executable(topo-lang-rust-tests
     unit/RustStubGeneratorTest.cpp
+    unit/RustSymbolExtractorTest.cpp
 )
 # TopoRustAnalysis PUBLIC-propagates TopoRustLSP → topo::core::TopoLSPBridge
 # → topo::core::TopoPlatform, so explicit TopoPlatform is redundant.
