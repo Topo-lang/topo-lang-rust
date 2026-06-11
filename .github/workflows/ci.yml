@@ -124,8 +124,9 @@ jobs:
         run: ctest --test-dir build --output-on-failure --timeout 120
 
       # Smoke test: install topo-lang-rust, then verify a downstream
-      # find_package(topo-lang-rust CONFIG REQUIRED) resolves and links
-      # cleanly against the topo::lang-rust::TopoRustAnalysis target.
+      # find_package(topo-lang-rust CONFIG REQUIRED) resolves and links the
+      # topo::lang-rust::TopoRustPlugin aggregator from the zero-LLVM
+      # install, and that the plugin registers + resolves at runtime.
       - name: Install topo-lang-rust
         run: cmake --install build --prefix "${RUNNER_TEMP}/lang-rust-install"
 
@@ -147,9 +148,16 @@ jobs:
           set(CMAKE_CXX_STANDARD 17)
           find_package(topo-lang-rust CONFIG REQUIRED)
           add_executable(smoke smoke.cpp)
-          target_link_libraries(smoke PRIVATE topo::lang-rust::TopoRustAnalysis)
+          target_link_libraries(smoke PRIVATE topo::lang-rust::TopoRustPlugin)
           CMAKE
           cat > smoke.cpp <<'CPP'
+          // Linking topo::lang-rust::TopoRustPlugin pulls the full zero-LLVM
+          // aggregator closure (TopoRustInit/Analysis/Check/Transpile/LSP +
+          // topo::lang::TopoLang + topo::core::* via PUBLIC propagation).
+          // The runtime probe asserts the installed plugin actually
+          // registers and resolves — the per-repo acceptance check that the
+          // default install set answers rust.
+          #include <RustPlugin.h>
           #include "stub/RustStubGenerator.h"
           #include <cstdio>
           #include <string>
@@ -157,7 +165,9 @@ jobs:
               const std::string src = "fn add(a: i32, b: i32) -> i32 { a + b }\n";
               const size_t pos = topo::check::RustStubGenerator::findFunctionBodyStart(src, "add");
               if (pos == std::string::npos || src[pos] != '{') return 1;
-              std::printf("topo-lang-rust find_package OK: body opens at %zu\n", pos);
+              topo::lang::registerRustPlugin();
+              if (topo::lang::getPlugin(topo::HostLanguage::Rust) == nullptr) return 1;
+              std::printf("topo-lang-rust find_package OK: body opens at %zu; Rust plugin registered\n", pos);
               return 0;
           }
           CPP

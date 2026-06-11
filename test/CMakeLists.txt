@@ -23,9 +23,11 @@ if(MINGW)
 endif()
 gtest_discover_tests(topo-lang-rust-tests DISCOVERY_TIMEOUT 30 PROPERTIES LABELS "toolchain\;lang-rust" TIMEOUT 60)
 
-# Extractor fidelity tests + check E2E tests depend on the cargo-built
-# extractor binary and the plugin aggregator (TopoRustPlugin), both of
-# which are gated behind TOPO_LANG_RUST_ENABLE_LLVM.
+# Extractor fidelity tests + check E2E tests stay behind
+# TOPO_LANG_RUST_ENABLE_LLVM: fidelity consumes the cargo-built extractor
+# binary (only built in that scope), and check-e2e needs topo-cli on the
+# prefix, which only the verify-llvm lane provides. TopoRustPlugin itself
+# is unconditional (zero-LLVM closure).
 if(TOPO_LANG_RUST_ENABLE_LLVM)
     add_executable(topo-lang-rust-extractor-fidelity-tests
         unit/RustExtractorFidelityTest.cpp
