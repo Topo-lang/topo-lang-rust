@@ -35,14 +35,17 @@ add_executable(topo-lang-rust-check-tests
     ${_topo_rust_test_root}/e2e/RustPurityTest.cpp
     ${_topo_rust_test_root}/e2e/RustVisibilityTest.cpp
     ${_topo_rust_test_root}/e2e/RustStageIsolationTest.cpp
+    ${_topo_rust_test_root}/e2e/RustShowcaseTest.cpp
 )
 target_link_libraries(topo-lang-rust-check-tests PRIVATE
     topo::cli::TopoCheckRunner
     TopoRustPlugin
     GTest::gtest
 )
+get_filename_component(_topo_rust_pkg_root ${_topo_rust_test_root} DIRECTORY)
 target_compile_definitions(topo-lang-rust-check-tests PRIVATE
     TOPO_TEST_FIXTURES_DIR="${_topo_rust_test_root}/fixtures/check"
+    TOPO_EXAMPLES_DIR="${_topo_rust_pkg_root}/examples"
 )
 topo_set_compiler_flags(topo-lang-rust-check-tests)
 # TIMEOUT 180: every L2 case boots rust-analyzer + cargo metadata.
