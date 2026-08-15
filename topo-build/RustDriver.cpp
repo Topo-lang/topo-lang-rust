@@ -175,19 +175,26 @@ static std::string findCargoArtifact(const fs::path& projectDir,
     fs::path scanRoot = triplePrefix.empty() ? targetDir : (targetDir / triplePrefix);
     std::error_code scanEc;
     if (fs::exists(scanRoot, scanEc)) {
-        for (const auto& entry : fs::directory_iterator(scanRoot, scanEc)) {
-            if (!entry.is_directory()) continue;
-            fs::path candidate = entry.path() / "deps";
-            if (fs::exists(candidate)) addCandidate(candidate);
+        for (auto it = fs::directory_iterator(scanRoot, scanEc);
+             !scanEc && it != fs::directory_iterator();
+             it.increment(scanEc)) {
+            std::error_code entryEc;
+            if (!it->is_directory(entryEc)) continue;
+            fs::path candidate = it->path() / "deps";
+            std::error_code candEc;
+            if (fs::exists(candidate, candEc)) addCandidate(candidate);
         }
     }
 
     for (const auto& depsDir : depsDirs) {
-        if (!fs::exists(depsDir)) continue;
+        std::error_code depsEc;
+        if (!fs::exists(depsDir, depsEc)) continue;
         std::error_code ec;
-        for (const auto& entry : fs::directory_iterator(depsDir, ec)) {
-            if (!entry.is_regular_file()) continue;
-            if (predicate(entry)) return entry.path().string();
+        for (auto it = fs::directory_iterator(depsDir, ec);
+             !ec && it != fs::directory_iterator(); it.increment(ec)) {
+            std::error_code entryEc;
+            if (!it->is_regular_file(entryEc)) continue;
+            if (predicate(*it)) return it->path().string();
         }
     }
     return "";

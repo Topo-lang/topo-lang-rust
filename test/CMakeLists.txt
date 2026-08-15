@@ -1,6 +1,7 @@
 # Lang type tests (header-only, no LLVM)
 add_executable(topo-lang-rust-tests
     unit/RustStubGeneratorTest.cpp
+    unit/RustSymbolExtractorTest.cpp
 )
 # TopoRustAnalysis PUBLIC-propagates TopoRustLSP → topo::core::TopoLSPBridge
 # → topo::core::TopoPlatform, so explicit TopoPlatform is redundant.
@@ -23,9 +24,11 @@ if(MINGW)
 endif()
 gtest_discover_tests(topo-lang-rust-tests DISCOVERY_TIMEOUT 30 PROPERTIES LABELS "toolchain\;lang-rust" TIMEOUT 60)
 
-# Extractor fidelity tests + check E2E tests depend on the cargo-built
-# extractor binary and the plugin aggregator (TopoRustPlugin), both of
-# which are gated behind TOPO_LANG_RUST_ENABLE_LLVM.
+# Extractor fidelity tests + check E2E tests stay behind
+# TOPO_LANG_RUST_ENABLE_LLVM: fidelity consumes the cargo-built extractor
+# binary (only built in that scope), and check-e2e needs topo-cli on the
+# prefix, which only the verify-llvm lane provides. TopoRustPlugin itself
+# is unconditional (zero-LLVM closure).
 if(TOPO_LANG_RUST_ENABLE_LLVM)
     add_executable(topo-lang-rust-extractor-fidelity-tests
         unit/RustExtractorFidelityTest.cpp
@@ -46,31 +49,8 @@ if(TOPO_LANG_RUST_ENABLE_LLVM)
         PROPERTIES LABELS "toolchain\;lang-rust\;extractor-fidelity" TIMEOUT 60
         ENVIRONMENT "TOPO_EXTRACT_ROOT=${PROJECT_SOURCE_DIR}")
 
-    # check-e2e suite needs TopoCheckRunner (owned by topo-cli) to drive the
-    # full check pipeline. Pull topo-cli in quietly; if its check-runner
-    # imported target is unavailable, skip the suite.
-    find_package(topo-cli CONFIG QUIET)
-    if(TARGET topo::cli::TopoCheckRunner)
-        add_executable(topo-lang-rust-check-tests
-            e2e/TestMain.cpp
-            e2e/RustCompletenessTest.cpp
-            e2e/RustContainmentTest.cpp
-            e2e/RustPurityTest.cpp
-            e2e/RustVisibilityTest.cpp
-            e2e/RustStageIsolationTest.cpp
-        )
-        target_link_libraries(topo-lang-rust-check-tests PRIVATE
-            topo::cli::TopoCheckRunner
-            TopoRustPlugin
-            GTest::gtest
-        )
-        target_compile_definitions(topo-lang-rust-check-tests PRIVATE
-            TOPO_TEST_FIXTURES_DIR="${CMAKE_CURRENT_SOURCE_DIR}/fixtures/check"
-        )
-        topo_set_compiler_flags(topo-lang-rust-check-tests)
-        # TIMEOUT 180: every L2 case boots rust-analyzer + cargo metadata.
-        gtest_discover_tests(topo-lang-rust-check-tests DISCOVERY_TIMEOUT 30 PROPERTIES LABELS "toolchain\;checker\;lang-rust" TIMEOUT 180)
-    else()
-        message(STATUS "topo-lang-rust: check-e2e tests skipped (topo-cli/TopoCheckRunner not on CMAKE_PREFIX_PATH)")
-    endif()
+    # Checker-e2e suite — extracted to its own dir so an embedding
+    # super-build can re-add it after topo-cli configures; the file
+    # self-gates on TopoCheckRunner availability (same skip as before).
+    add_subdirectory(check-e2e)
 endif()

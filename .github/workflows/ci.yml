@@ -124,8 +124,9 @@ jobs:
         run: ctest --test-dir build --output-on-failure --timeout 120
 
       # Smoke test: install topo-lang-rust, then verify a downstream
-      # find_package(topo-lang-rust CONFIG REQUIRED) resolves and links
-      # cleanly against the topo::lang-rust::TopoRustAnalysis target.
+      # find_package(topo-lang-rust CONFIG REQUIRED) resolves and links the
+      # topo::lang-rust::TopoRustPlugin aggregator from the zero-LLVM
+      # install, and that the plugin registers + resolves at runtime.
       - name: Install topo-lang-rust
         run: cmake --install build --prefix "${RUNNER_TEMP}/lang-rust-install"
 
@@ -147,9 +148,16 @@ jobs:
           set(CMAKE_CXX_STANDARD 17)
           find_package(topo-lang-rust CONFIG REQUIRED)
           add_executable(smoke smoke.cpp)
-          target_link_libraries(smoke PRIVATE topo::lang-rust::TopoRustAnalysis)
+          target_link_libraries(smoke PRIVATE topo::lang-rust::TopoRustPlugin)
           CMAKE
           cat > smoke.cpp <<'CPP'
+          // Linking topo::lang-rust::TopoRustPlugin pulls the full zero-LLVM
+          // aggregator closure (TopoRustInit/Analysis/Check/Transpile/LSP +
+          // topo::lang::TopoLang + topo::core::* via PUBLIC propagation).
+          // The runtime probe asserts the installed plugin actually
+          // registers and resolves — the per-repo acceptance check that the
+          // default install set answers rust.
+          #include <RustPlugin.h>
           #include "stub/RustStubGenerator.h"
           #include <cstdio>
           #include <string>
@@ -157,7 +165,9 @@ jobs:
               const std::string src = "fn add(a: i32, b: i32) -> i32 { a + b }\n";
               const size_t pos = topo::check::RustStubGenerator::findFunctionBodyStart(src, "add");
               if (pos == std::string::npos || src[pos] != '{') return 1;
-              std::printf("topo-lang-rust find_package OK: body opens at %zu\n", pos);
+              topo::lang::registerRustPlugin();
+              if (topo::lang::getPlugin(topo::HostLanguage::Rust) == nullptr) return 1;
+              std::printf("topo-lang-rust find_package OK: body opens at %zu; Rust plugin registered\n", pos);
               return 0;
           }
           CPP
@@ -165,7 +175,21 @@ jobs:
               -DCMAKE_PREFIX_PATH="${RUNNER_TEMP}/lang-rust-install;${RUNNER_TEMP}/topo-install" \
               -DCMAKE_TOOLCHAIN_FILE="${VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake"
           cmake --build build
-          ./build/smoke
+          # bash does not resolve the .exe suffix for exec — the Windows
+          # runner builds smoke.exe, every other leg builds smoke. The
+          # MinGW-linked smoke.exe also needs its build-time gcc bin dir
+          # FIRST on PATH to resolve libstdc++/libgcc at exec time (the
+          # same fix the Test step uses) — a missing DLL surfaces as
+          # bash exit 127.
+          if [ "$RUNNER_OS" = "Windows" ]; then
+            cxx=$(grep -m1 '^CMAKE_CXX_COMPILER:' build/CMakeCache.txt | cut -d= -f2)
+            if [ -n "$cxx" ]; then
+              export PATH="$(cygpath -u "$(dirname "$cxx")"):${PATH}"
+            fi
+            ./build/smoke.exe
+          else
+            ./build/smoke
+          fi
 
   # ── ENABLE_LLVM=ON verify: topo-debug-rust relocatable install ──────────
   # build-and-test (above) covers only the zero-LLVM scope, so topo-debug-rust
@@ -385,25 +409,16 @@ jobs:
 
       # The checker suite passes ctest even when its gtest cases
       # GTEST_SKIP() (rust-analyzer absent / fixture extraction degraded) —
-      # "Passed" can mean "every case skipped". Re-run the binary and FAIL
-      # on any skip or zero passes (skip != pass).
+      # "Passed" can mean "every case skipped". Re-run the binary via the
+      # shared assert script: strict mode keeps the aggregate guards
+      # (exit 0, >=1 pass, ZERO skips), and the NAMED anchor cases — one
+      # per rust-analyzer-gated suite — must additionally appear in the
+      # PASSED set. An ABSENT name means renamed / filtered / not compiled
+      # in; update the list together with the test, never weaken the
+      # pattern.
       - name: Assert L2 deep containment ran (skip != pass)
         run: |
-          set +e
-          exe=$(find build -type f -name "topo-lang-rust-check-tests" 2>/dev/null | head -1)
-          if [ -z "${exe}" ]; then
-            echo "::error::topo-lang-rust-check-tests not built — topo-cli prefix missing at configure time?"; exit 1
-          fi
-          out=$("${exe}" 2>&1); rc=$?
-          printf '%s\n' "${out}" | tail -20
-          passed=$(printf '%s\n' "${out}" | grep -oE '\[  PASSED  \] [0-9]+ test' | grep -oE '[0-9]+' | tail -1)
-          skipped=$(printf '%s\n' "${out}" | grep -oE '\[  SKIPPED \] [0-9]+ test' | grep -oE '[0-9]+' | tail -1)
-          [ -z "${passed}" ] && passed=0
-          [ -z "${skipped}" ] && skipped=0
-          echo "topo-lang-rust-check-tests: ${passed} PASSED, ${skipped} skipped (exit ${rc})"
-          if [ "${rc}" -ne 0 ]; then
-            echo "::error::checker-e2e suite failed (exit ${rc})"; exit 1
-          fi
-          if [ "${skipped}" -gt 0 ] || [ "${passed}" -lt 1 ]; then
-            echo "::error::L2 deep containment did not RUN (rust-analyzer/cargo missing -> GTEST_SKIP; skip != pass)"; exit 1
-          fi
+          bash .github/scripts/assert-live-cases.sh strict topo-lang-rust-check-tests \
+            RustContainmentL2.ContainmentL2ExternalOk \
+            RustCompleteness.CompletenessPassFixture \
+            RustContainment.ContainmentRustFail

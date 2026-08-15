@@ -10,8 +10,9 @@ using bool = std::rust::bool;
 using f64 = std::rust::f64;
 using usize = std::rust::usize;
 using i64 = std::rust::i64;
+using RunResult = std::rust::i32;
 
-std::import("pipeline/config.rs", PipelineConfig);
+std::import("pipeline_config.rs", PipelineConfig);
 
 namespace pipeline {
 
@@ -58,7 +59,7 @@ namespace pipeline {
       public:
         explicit Schema(i32 id);
         i32 field_type(i32 index) const;
-        bool accepts(const Record& record) const;
+        bool accepts(const Record& rec) const;
         i32 id() const;
         static Schema default_schema();
       private:
@@ -70,7 +71,7 @@ namespace pipeline {
       public:
         explicit Batch(i32 capacity);
         ~Batch();
-        void add(const Record& record);
+        void add(const Record& rec);
         const Record& get(i32 index) const;
         i32 size() const;
         bool is_full() const;
@@ -168,7 +169,7 @@ namespace pipeline {
   public:
     comptime fn max_batch_size(i32 record_size) -> i32 { record_size * 4096 }
 
-    comptime if (sizeof(i32) <= 4) {
+    comptime if (sizeof(usize) <= 4) {
       void use_compact_format();
     } else {
       void use_wide_format();
@@ -184,12 +185,12 @@ namespace pipeline {
   // -- Constraint implementation functions --------------------------
 
   protected:
-    bool record_validate(Record& record);
-    i32 record_error_count(const Record& record);
-    usize record_serialized_size(const Record& record);
-    void record_serialize(const Record& record, i32 dest);
-    bool record_deserialize(Record& record, i32 src);
-    i64 record_index_key(const Record& record);
+    bool record_validate(Record& rec);
+    i32 record_error_count(const Record& rec);
+    usize record_serialized_size(const Record& rec);
+    void record_serialize(const Record& rec, i32 dest);
+    bool record_deserialize(Record& rec, i32 src);
+    i64 record_index_key(const Record& rec);
     i32 record_compare_key(const Record& a, const Record& b);
 
   private:

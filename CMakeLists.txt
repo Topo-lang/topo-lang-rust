@@ -75,12 +75,12 @@ if(TOPO_LANG_RUST_ENABLE_LLVM)
 endif()
 add_subdirectory(topo-debug)
 add_subdirectory(topo-profile)
-# Plugin aggregator — depends on the above libs. Some PRIVATE includes
-# point into LLVM-gated subdirs, so we gate it on TOPO_LANG_RUST_ENABLE_LLVM
-# for the pilot (covering it requires the build/debug subdirs being live).
-if(TOPO_LANG_RUST_ENABLE_LLVM)
-    add_subdirectory(topo-lang)
-endif()
+# Plugin aggregator — links TopoLang + TopoRust{Init,Analysis,Check,
+# Transpile,LSP}, all unconditional; nothing in the closure touches LLVM.
+# The LLVM-dependent pieces (RustDriver, debug adapter, profile fixture,
+# cargo extractor) are separate targets gated above, so the plugin ships
+# in the default scope.
+add_subdirectory(topo-lang)
 
 # Build topo-extract-rust via cargo. Gated on the LLVM flag because the
 # fidelity tests under test/ that consume this binary live in the
