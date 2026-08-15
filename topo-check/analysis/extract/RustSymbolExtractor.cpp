@@ -439,6 +439,18 @@ std::vector<HostSymbol> RustSymbolExtractor::extractSymbols(const std::string& f
             // Extract parameter types
             sym.paramTypes = extractParamTypes(effectiveLine);
 
+            // Normalize `Self` in signature positions to the enclosing
+            // type name: `Self` is not a .topo type, and IR-level symbol
+            // mapping matches rust v0 impl-method demangles against the
+            // concrete type. (Exact-match only — `&Self` / `Box<Self>`
+            // need the L2 extractor's real type resolution.)
+            if (!enclosing.empty()) {
+                if (sym.returnType == "Self") sym.returnType = enclosing;
+                for (auto& p : sym.paramTypes) {
+                    if (p == "Self") p = enclosing;
+                }
+            }
+
             // Map visibility
             std::string pubSpec = extractPubSpec(effectiveLine);
             sym.hostVisibility = mapVisibility(pubSpec);
