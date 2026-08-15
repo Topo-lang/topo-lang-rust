@@ -50,12 +50,21 @@ if(TARGET topo::lang-cpp::TopoCppAnalysis)
 endif()
 
 # TOPO_SOURCE_DIR is used by RustSafePatterns.cpp for source-tree catalog
-# discovery (with runtime fallback if not present). In standalone mode
-# we point it at the topo-lang-rust source root; install-time consumers
-# can override via -DTOPO_SOURCE_DIR=<your-checkout-root>. The runtime
+# discovery (with runtime fallback if not present). The candidate path is
+# <TOPO_SOURCE_DIR>/topo-lang-rust/topo-check/analysis/catalog/...:
+# standalone (the public-CI clone layout) expects the clone's PARENT —
+# <parent>/topo-lang-rust is the clone itself; embedded under the meta
+# union build the source root IS the parent of the topo-lang-rust dir,
+# so point at CMAKE_SOURCE_DIR directly. Install-time consumers can
+# override via -DTOPO_SOURCE_DIR=<your-checkout-root>. The runtime
 # code returns false safely when the catalog can't be located.
+if(PROJECT_IS_TOP_LEVEL)
+    set(_topo_source_dir "${CMAKE_SOURCE_DIR}/..")
+else()
+    set(_topo_source_dir "${CMAKE_SOURCE_DIR}")
+endif()
 target_compile_definitions(TopoRustAnalysis PRIVATE
-    TOPO_SOURCE_DIR="${CMAKE_SOURCE_DIR}/.."
+    TOPO_SOURCE_DIR="${_topo_source_dir}"
 )
 topo_set_compiler_flags(TopoRustAnalysis)
 
